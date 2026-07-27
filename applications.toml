@@ -15,6 +15,10 @@
 #                                            # the last absolute path in command
 #   in_terminal = true                       # open in gnome-terminal/xterm so
 #                                            # console output stays visible
+#   hold_terminal = true                     # with in_terminal: keep the window
+#                                            # open after the command exits
+#                                            # ("Press Enter to close"), for
+#                                            # tools that print a report & quit
 #   clear_fontconfig = true                  # rm -rf ~/.cache/fontconfig first
 #   tags        = ["extra", "search", "words"]
 
@@ -36,6 +40,10 @@ name = "Marimo Notebooks"
 [[category]]
 id = "python"
 name = "Python & Other Apps"
+
+[[category]]
+id = "tools"
+name = "System Tools"
 
 # --------------------------------------------------------------------------
 # Rust applications
@@ -232,3 +240,70 @@ description = "Orion Studio application."
 category = "python"
 command = ["/SNS/VENUS/shared/software/bin/OrionStudio/OrionStudio"]
 workdir = "/SNS/VENUS/shared/software/bin/OrionStudio"
+
+# --------------------------------------------------------------------------
+# System tools
+# --------------------------------------------------------------------------
+
+[[app]]
+name = "System Report Dashboard"
+description = "Web dashboard: analysis machine users, AMIRA licenses, who is connected, find IPTS."
+category = "tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/launch_system_report.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["report", "dashboard", "monitoring"]
+
+[[app]]
+name = "Who Is Connected (this machine)"
+description = "List the users currently logged in to this machine, with name and email."
+category = "tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/who_is_connected.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["users", "sessions"]
+
+[[app]]
+name = "Analysis Machine Users"
+description = "Users connected to every VENUS (bl10) and MARS (cg1d) analysis machine."
+category = "tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/list_analysis_machine_users.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["users", "bl10", "cg1d"]
+
+[[app]]
+name = "AMIRA License Users"
+description = "Who is holding AMIRA licenses on MARS and VENUS, with start time and duration."
+category = "tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/list_amira_license_users.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["avizo", "licenses"]
+
+[[app]]
+name = "Find IPTS from Run Number"
+description = "Prompt for a VENUS run number and report which IPTS contains it."
+category = "tools"
+command = ["/bin/bash", "-c", "read -r -p 'VENUS run number: ' rn; /SNS/VENUS/shared/software/bin/find_ipts.sh \"$rn\""]
+check_path = "/SNS/VENUS/shared/software/bin/find_ipts.sh"
+in_terminal = true
+hold_terminal = true
+tags = ["run", "nexus"]
+
+[[app]]
+name = "Fix Running Browser / Jupyter"
+description = "Find (and optionally kill) your Firefox/Jupyter processes stuck on the analysis machines."
+category = "tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/list_and_fix_running_browser.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["firefox", "locked profile", "kill"]
+
+[[app]]
+name = "System Monitor (btop)"
+description = "Interactive CPU / memory / process monitor for this machine."
+category = "tools"
+command = ["/SNS/VENUS/shared/software/bin/btop"]
+in_terminal = true
+tags = ["cpu", "memory", "processes"]

@@ -77,6 +77,10 @@ struct AppEntry {
     /// stays visible.
     #[serde(default)]
     in_terminal: bool,
+    /// With `in_terminal`: keep the window open after the command exits
+    /// ("Press Enter to close"), for tools that print a report and quit.
+    #[serde(default)]
+    hold_terminal: bool,
     /// Remove `~/.cache/fontconfig` before launching (stale-cache workaround
     /// used by the egui portals).
     #[serde(default)]
@@ -120,7 +124,21 @@ impl AppEntry {
             if let Some((term, term_args)) = find_terminal() {
                 let mut wrapped = vec![term];
                 wrapped.extend(term_args);
-                wrapped.extend(argv);
+                if self.hold_terminal {
+                    let joined = self
+                        .command
+                        .iter()
+                        .map(|a| shell_quote(a))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    wrapped.push("/bin/bash".to_owned());
+                    wrapped.push("-c".to_owned());
+                    wrapped.push(format!(
+                        "{joined}; echo; read -r -p 'Press Enter to close...'"
+                    ));
+                } else {
+                    wrapped.extend(argv);
+                }
                 argv = wrapped;
             } // no terminal emulator found: fall back to a plain spawn
         }
@@ -155,6 +173,11 @@ impl AppEntry {
                 .iter()
                 .any(|t| t.to_lowercase().contains(&needle))
     }
+}
+
+/// Single-quote a string for safe interpolation into a `bash -c` command.
+fn shell_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
 }
 
 /// Locate a terminal emulator on PATH; returns (path, pre-command args).
