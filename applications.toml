@@ -1,0 +1,234 @@
+# Applications shown by the Neutron Imaging Launcher (rust_unified_launcher).
+#
+# Edit this file, then press "Reload config" in the running launcher (or just
+# restart it) — no recompile needed.
+#
+# Entry format:
+#   [[app]]
+#   name        = "Shown in the list"
+#   description = "One line under the name"
+#   category    = "id of a [[category]] below"
+#   command     = ["argv0", "arg1", ...]     # scripts go through /bin/bash
+#   workdir     = "/optional/working/dir"    # default: dir of the checked path
+#   preview     = "/optional/screenshot.png" # shown in the right-hand panel
+#   check_path  = "/optional/path"           # availability check; default is
+#                                            # the last absolute path in command
+#   in_terminal = true                       # open in gnome-terminal/xterm so
+#                                            # console output stays visible
+#   clear_fontconfig = true                  # rm -rf ~/.cache/fontconfig first
+#   tags        = ["extra", "search", "words"]
+
+title = "Neutron Imaging Launcher"
+subtitle = "All VENUS / MARS imaging applications in one place"
+
+[[category]]
+id = "rust"
+name = "Rust Applications"
+
+[[category]]
+id = "jupyter"
+name = "Jupyter Notebooks"
+
+[[category]]
+id = "marimo"
+name = "Marimo Notebooks"
+
+[[category]]
+id = "python"
+name = "Python & Other Apps"
+
+# --------------------------------------------------------------------------
+# Rust applications
+# --------------------------------------------------------------------------
+
+[[app]]
+name = "TIFF Viewer"
+description = "Browse and inspect folders of TIFF images from a measurement."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tiff_viewer/launch_rust_tiff_viewer.sh"]
+tags = ["images", "viewer"]
+
+[[app]]
+name = "TOF Profile Viewer"
+description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF profiles."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_viewer/launch_tof_profile_viewer.sh"]
+tags = ["time of flight"]
+
+[[app]]
+name = "ROI Selector"
+description = "Select regions of interest on an imaging data set and export a mask file."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_roi_selector/launch_roi_selector.sh"]
+tags = ["mask", "region"]
+
+[[app]]
+name = "Crop TIFF"
+description = "Select a rectangular crop region on a TIFF or .npy stack and export it."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_crop_tiff/launch_crop_tiff.sh"]
+
+[[app]]
+name = "CT Reconstruction"
+description = "Neutron CT reconstruction workflows for VENUS and MARS."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ct_reconstruction/launch_ct_reconstruction.sh"]
+tags = ["tomography"]
+
+[[app]]
+name = "Hyperspectral Masker"
+description = "Create a copy of an input data set with selected pixels masked."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_hyperspectra_masker/launch_rust_hyperspectral_makser.sh"]
+
+[[app]]
+name = "Auto Normalization Monitor"
+description = "Monitor the state of the VENUS auto normalization pipeline."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
+
+[[app]]
+name = "BM3D ORNL GUI"
+description = "Denoise imaging data / sinograms with the BM3D ORNL algorithm."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_bm3dornl/launch_bm3dornl_gui.sh"]
+tags = ["denoise"]
+
+[[app]]
+name = "NRAD Spot Cleaner"
+description = "Remove spots and hot pixels from radiographs with the NRAD algorithms."
+category = "rust"
+command = ["/SNS/VENUS/shared/software/bin/nrad-gui"]
+
+[[app]]
+name = "Timepix3 Tool (rustpix)"
+description = "Process Timepix3 (TPX3) pixel detector data with the rustpix GUI."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rustpix/launch_rustpix.sh"]
+tags = ["tpx3", "detector"]
+
+# --------------------------------------------------------------------------
+# Jupyter notebooks
+# --------------------------------------------------------------------------
+
+[[app]]
+name = "Jupyter Notebooks Portal"
+description = "Provision and launch the imaging Jupyter notebooks for an IPTS."
+category = "jupyter"
+command = ["/SNS/VENUS/shared/software/bin/rust_jupyter_notebooks_portal"]
+clear_fontconfig = true
+tags = ["ipts"]
+
+[[app]]
+name = "Jupyter Portal (dedicated IPTS)"
+description = "Launch the JupyterLab notebooks of a dedicated IPTS."
+category = "jupyter"
+command = ["/SNS/VENUS/shared/software/bin/rust_jupyter_portal_dedicated_ipts"]
+clear_fontconfig = true
+tags = ["ipts"]
+
+[[app]]
+name = "Jupyter Data Reduction"
+description = "Launch the Jupyter data-reduction notebooks (pixi environment)."
+category = "jupyter"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/scripts/start_jupyter_data_reduction_pixi"]
+in_terminal = true
+clear_fontconfig = true
+
+[[app]]
+name = "Jupyter Notebooks (legacy)"
+description = "Legacy pixi-based Jupyter notebooks launcher."
+category = "jupyter"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/scripts/start_jupyter_pixi"]
+in_terminal = true
+clear_fontconfig = true
+
+[[app]]
+name = "Notebooks with Orion"
+description = "Launch the Jupyter notebooks together with Orion."
+category = "jupyter"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_notebooks_with_orion"]
+in_terminal = true
+
+# --------------------------------------------------------------------------
+# Marimo notebooks
+# --------------------------------------------------------------------------
+
+[[app]]
+name = "Marimo Portal (general tools)"
+description = "Browse and launch the general-tools marimo notebooks."
+category = "marimo"
+command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal_general_tools"]
+clear_fontconfig = true
+
+[[app]]
+name = "Marimo Portal (dedicated IPTS)"
+description = "Launch the marimo notebooks of a dedicated IPTS."
+category = "marimo"
+command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal"]
+clear_fontconfig = true
+tags = ["ipts"]
+
+[[app]]
+name = "Marimo Notebooks (pixi)"
+description = "Legacy pixi-based marimo notebooks launcher."
+category = "marimo"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/scripts/start_jupyter_marimo_pixi"]
+in_terminal = true
+clear_fontconfig = true
+
+[[app]]
+name = "iBeatles Bragg-edge Fitting (marimo)"
+description = "Batch Bragg-edge fitting notebook served with marimo."
+category = "marimo"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_ibeatles_cli_marimo"]
+in_terminal = true
+tags = ["bragg edge"]
+
+# --------------------------------------------------------------------------
+# Python & other applications
+# --------------------------------------------------------------------------
+
+[[app]]
+name = "Angel"
+description = "Angel analysis application (pixi environment)."
+category = "python"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_angel"]
+in_terminal = true
+
+[[app]]
+name = "Angel 2.0"
+description = "Angel 2.0 analysis application (conda environment)."
+category = "python"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_angel20"]
+in_terminal = true
+
+[[app]]
+name = "iBeatles"
+description = "Bragg-edge strain mapping — sets up a local pixi environment on first run."
+category = "python"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_ibeatles"]
+in_terminal = true
+tags = ["bragg edge", "strain"]
+
+[[app]]
+name = "HyperCTui"
+description = "AI-automated CT loop (marimo notebook, pixi environment)."
+category = "python"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_hyperctui"]
+in_terminal = true
+tags = ["ai", "tomography"]
+
+[[app]]
+name = "Nereids"
+description = "Nereids GUI (pixi environment)."
+category = "python"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_nereids"]
+in_terminal = true
+
+[[app]]
+name = "Orion Studio"
+description = "Orion Studio application."
+category = "python"
+command = ["/SNS/VENUS/shared/software/bin/OrionStudio/OrionStudio"]
+workdir = "/SNS/VENUS/shared/software/bin/OrionStudio"
