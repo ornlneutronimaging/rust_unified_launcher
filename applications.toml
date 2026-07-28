@@ -144,14 +144,6 @@ in_terminal = true
 clear_fontconfig = true
 
 [[app]]
-name = "Jupyter Notebooks (legacy)"
-description = "Legacy pixi-based Jupyter notebooks launcher."
-category = "jupyter"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/scripts/start_jupyter_pixi"]
-in_terminal = true
-clear_fontconfig = true
-
-[[app]]
 name = "Notebooks with Orion"
 description = "Launch the Jupyter notebooks together with Orion."
 category = "jupyter"
@@ -177,22 +169,6 @@ command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal"]
 clear_fontconfig = true
 tags = ["ipts"]
 
-[[app]]
-name = "Marimo Notebooks (pixi)"
-description = "Legacy pixi-based marimo notebooks launcher."
-category = "marimo"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/scripts/start_jupyter_marimo_pixi"]
-in_terminal = true
-clear_fontconfig = true
-
-[[app]]
-name = "iBeatles Bragg-edge Fitting (marimo)"
-description = "Batch Bragg-edge fitting notebook served with marimo."
-category = "marimo"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_ibeatles_cli_marimo"]
-in_terminal = true
-tags = ["bragg edge"]
-
 # --------------------------------------------------------------------------
 # Python & other applications
 # --------------------------------------------------------------------------
@@ -202,13 +178,6 @@ name = "Angel"
 description = "Angel analysis application (pixi environment)."
 category = "python"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_angel"]
-in_terminal = true
-
-[[app]]
-name = "Angel 2.0"
-description = "Angel 2.0 analysis application (conda environment)."
-category = "python"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_angel20"]
 in_terminal = true
 
 [[app]]
@@ -225,12 +194,13 @@ description = "AI-automated CT loop (marimo notebook, pixi environment)."
 category = "python"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_hyperctui"]
 in_terminal = true
+hold_terminal = true
 tags = ["ai", "tomography"]
 
 [[app]]
 name = "Nereids"
 description = "Nereids GUI (pixi environment)."
-category = "python"
+category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_nereids"]
 in_terminal = true
 
@@ -306,4 +276,5 @@ description = "Interactive CPU / memory / process monitor for this machine."
 category = "tools"
 command = ["/SNS/VENUS/shared/software/bin/btop"]
 in_terminal = true
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/system_monitor_btop.png"
 tags = ["cpu", "memory", "processes"]
