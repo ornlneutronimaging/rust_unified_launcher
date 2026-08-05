@@ -227,13 +227,13 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_
 tags = ["bragg edge", "fitting", "web", "santisteban"]
 
 [[app]]
-name = "iBEAMS"
+name = "iBeatles 2.0"
 description = "End-to-end Bragg-edge analysis: mask ROI, normalization, batch fitting, and strain mapping."
 category = "web"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/iBEAMS/launch_ibeams.sh"]
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/ibeams.png"
-tags = ["bragg edge", "strain", "fitting", "web", "ibeams"]
+tags = ["bragg edge", "strain", "fitting", "web", "ibeams", "ibeatles"]
 
 [[app]]
 name = "Strain Contour Mapper"
