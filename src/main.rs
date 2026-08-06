@@ -60,6 +60,11 @@ struct AppEntry {
     #[serde(default)]
     description: String,
     category: String,
+    /// Optional sub-section shown as a smaller header inside the category.
+    /// Apps sharing a section must be consecutive in the file — the header is
+    /// emitted whenever the section of the listed apps changes.
+    #[serde(default)]
+    section: Option<String>,
     /// Argv of the process to spawn (first element is the executable).
     command: Vec<String>,
     /// Working directory for the spawned process; defaults to the directory
@@ -535,11 +540,13 @@ impl eframe::App for App {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 let group_by_category = self.active_category.is_none();
                 let mut last_category: Option<&str> = None;
+                let mut last_section: Option<&str> = None;
                 for idx in visible {
                     let app = &cfg.apps[idx];
                     if group_by_category && last_category != Some(app.category.as_str())
                     {
                         last_category = Some(app.category.as_str());
+                        last_section = None;
                         let cat_name = cfg
                             .categories
                             .iter()
@@ -553,6 +560,19 @@ impl eframe::App for App {
                                 .color(theme::PRIMARY_STRONG),
                         );
                         ui.add_space(2.0);
+                    }
+                    if app.section.as_deref() != last_section {
+                        last_section = app.section.as_deref();
+                        if let Some(section) = last_section {
+                            ui.add_space(4.0);
+                            ui.label(
+                                egui::RichText::new(section)
+                                    .strong()
+                                    .italics()
+                                    .color(theme::TEXT_EMPHASIS),
+                            );
+                            ui.add_space(2.0);
+                        }
                     }
                     let available = self.available.get(idx).copied().unwrap_or(false);
                     let cooling = self

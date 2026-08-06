@@ -8,6 +8,9 @@
 #   name        = "Shown in the list"
 #   description = "One line under the name"
 #   category    = "id of a [[category]] below"
+#   section     = "Optional sub-section"     # smaller header inside the
+#                                            # category; keep apps of the same
+#                                            # section consecutive in this file
 #   command     = ["argv0", "arg1", ...]     # scripts go through /bin/bash
 #   workdir     = "/optional/working/dir"    # default: dir of the checked path
 #   preview     = "/optional/screenshot.png" # shown in the right-hand panel
@@ -46,6 +49,10 @@ id = "web"
 name = "Web Applications"
 
 [[category]]
+id = "venus"
+name = "VENUS"
+
+[[category]]
 id = "tools"
 name = "System Tools"
 
@@ -64,7 +71,7 @@ tags = ["images", "viewer"]
 name = "TOF Profile Viewer"
 description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF profiles."
 category = "rust"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_viewer/launch_tof_profile_viewer.sh"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_rebin_viewer/launch_tof_profile_rebin_viewer.sh"]
 tags = ["time of flight"]
 
 [[app]]
@@ -247,6 +254,106 @@ tags = ["strain", "contour", "heatmap", "ibeatles", "web"]
 name = "VENUS Segmentation Tool"
 description = "Paint multi-class masks on an image and export training-ready masks — all client-side."
 category = "web"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/venus_image_segmentation_website/start_segmentation_tool.sh"]
+in_terminal = true
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/class_mask_web_tool.png"
+tags = ["segmentation", "mask", "labeling", "training", "web"]
+
+# --------------------------------------------------------------------------
+# VENUS
+# --------------------------------------------------------------------------
+# Several entries here are duplicates of apps from other categories that are
+# also relevant to VENUS. Keep apps of the same section consecutive.
+
+# ---- Bragg edge ----
+
+[[app]]
+name = "iBeatles"
+description = "Bragg-edge strain mapping — sets up a local pixi environment on first run."
+category = "venus"
+section = "Bragg edge"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_ibeatles"]
+in_terminal = true
+tags = ["bragg edge", "strain"]
+
+[[app]]
+name = "iBeatles Web"
+description = "End-to-end Bragg-edge analysis: mask ROI, normalization, batch fitting, and strain mapping."
+category = "venus"
+section = "Bragg edge"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/iBEAMS/launch_ibeams.sh"]
+in_terminal = true
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/ibeams.png"
+tags = ["bragg edge", "strain", "fitting", "web", "ibeams", "ibeatles"]
+
+[[app]]
+name = "Bragg-Edge Fitting Website"
+description = "Bragg-edge analysis website: equation playground, fitting demo, and upload & fit."
+category = "venus"
+section = "Bragg edge"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/bragg_edge_fitting_website/launch_website.sh"]
+in_terminal = true
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_fitting_web_tool.png"
+tags = ["bragg edge", "fitting", "web", "santisteban"]
+
+# ---- Normalization ----
+
+[[app]]
+name = "Auto Normalization Monitor"
+description = "Monitor the state of the VENUS auto normalization pipeline."
+category = "venus"
+section = "Normalization"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
+
+# ---- Visualization ----
+
+[[app]]
+name = "TOF Profile Viewer"
+description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF profiles."
+category = "venus"
+section = "Visualization"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_rebin_viewer/launch_tof_profile_rebin_viewer.sh"]
+tags = ["time of flight"]
+
+[[app]]
+name = "Strain Contour Mapper"
+description = "Visualize binned strain-mapping data as contour maps or heatmaps, with optional TIFF mask."
+category = "venus"
+section = "Visualization"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/strain_contour_mapper/launch_website.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_mapping_web_tool.png"
+tags = ["strain", "contour", "heatmap", "ibeatles", "web"]
+
+# ---- General tools ----
+
+[[app]]
+name = "Shutter Value Generator"
+description = "Interactive GUI to create the shutter value file — live gap plots, Bragg peaks and output preview."
+category = "venus"
+section = "General tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/make_shutter_value_file/rust_shutter_value/launch_shutter_value_maker.sh"]
+tags = ["venus", "shutter", "bragg", "timepix"]
+
+[[app]]
+name = "Hyperspectral Masker"
+description = "Create a copy of an input data set with selected pixels masked."
+category = "venus"
+section = "General tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_hyperspectra_masker/launch_rust_hyperspectral_makser.sh"]
+
+[[app]]
+name = "HyperCTui"
+description = "AI-automated CT loop (Rust hype_control application)."
+category = "venus"
+section = "General tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/hype_scripts/rust/launch_hype_control.sh"]
+tags = ["ai", "tomography"]
+
+[[app]]
+name = "VENUS Segmentation Tool"
+description = "Paint multi-class masks on an image and export training-ready masks — all client-side."
+category = "venus"
+section = "General tools"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/venus_image_segmentation_website/start_segmentation_tool.sh"]
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/class_mask_web_tool.png"
