@@ -134,6 +134,13 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_nexus_viewer/launch
 tags = ["nexus", "hdf5", "viewer"]
 
 [[app]]
+name = "VENUS Monitor"
+description = "Display the beam-monitor signal of VENUS NeXus event files (counts vs TOF and wavelength) and export the histogrammed data to CSV."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_venus_monitor/launch_venus_monitor.sh"]
+tags = ["monitor", "beam", "nexus", "tof", "wavelength", "csv"]
+
+[[app]]
 name = "Timepix3 Tool (rustpix)"
 description = "Process Timepix3 (TPX3) pixel detector data with the rustpix GUI."
 category = "rust"
