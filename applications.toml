@@ -95,6 +95,13 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ct_reconstruction/l
 tags = ["tomography"]
 
 [[app]]
+name = "Volume 3D Viewer"
+description = "Explore reconstructed CT volumes (TIFF slices or multi-page TIFF) as orthogonal slices or GPU-rendered 3-D volume."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_3d_visualization/launch_3d_visualization.sh"]
+tags = ["3d", "volume", "ct", "tomography", "viewer"]
+
+[[app]]
 name = "Hyperspectral Masker"
 description = "Create a copy of an input data set with selected pixels masked."
 category = "rust"
@@ -118,6 +125,13 @@ name = "NRAD Spot Cleaner"
 description = "Remove spots and hot pixels from radiographs with the NRAD algorithms."
 category = "rust"
 command = ["/SNS/VENUS/shared/software/bin/nrad-gui"]
+
+[[app]]
+name = "NeXus Viewer"
+description = "Browse the content of a NeXus/HDF5 file: tree view, values, plots and PV search."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_nexus_viewer/launch_nexus_viewer.sh"]
+tags = ["nexus", "hdf5", "viewer"]
 
 [[app]]
 name = "Timepix3 Tool (rustpix)"
@@ -259,6 +273,14 @@ in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/class_mask_web_tool.png"
 tags = ["segmentation", "mask", "labeling", "training", "web"]
 
+[[app]]
+name = "iNEUIT (local)"
+description = "Client-side JavaScript port of the NEUIT tools: composition converter, TOF plotter, golden angles, XRD to Bragg peaks, periodic table."
+category = "web"
+command = ["/SNS/VENUS/shared/software/git/neuit/webapp/neuit"]
+in_terminal = true
+tags = ["neuit", "ineuit", "composition", "tof", "periodic table", "xrd", "bragg", "web"]
+
 # --------------------------------------------------------------------------
 # VENUS
 # --------------------------------------------------------------------------
@@ -314,6 +336,14 @@ category = "venus"
 section = "Visualization"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_rebin_viewer/launch_tof_profile_rebin_viewer.sh"]
 tags = ["time of flight"]
+
+[[app]]
+name = "Volume 3D Viewer"
+description = "Explore reconstructed CT volumes (TIFF slices or multi-page TIFF) as orthogonal slices or GPU-rendered 3-D volume."
+category = "venus"
+section = "Visualization"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_3d_visualization/launch_3d_visualization.sh"]
+tags = ["3d", "volume", "ct", "tomography", "viewer"]
 
 [[app]]
 name = "Strain Contour Mapper"
