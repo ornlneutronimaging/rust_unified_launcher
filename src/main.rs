@@ -13,7 +13,8 @@ use eframe::egui;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::os::unix::process::CommandExt;
+use std::process::{Command, Stdio};
 
 const DEFAULT_CONFIG: &str =
     "/SNS/VENUS/shared/software/git/rust_unified_launcher/applications.toml";
@@ -158,10 +159,23 @@ impl AppEntry {
             })
             .unwrap_or_else(|| PathBuf::from("/"));
 
-        Command::new(&argv[0])
-            .args(&argv[1..])
+        let mut cmd = Command::new(&argv[0]);
+        cmd.args(&argv[1..])
             .current_dir(workdir)
-            .spawn()
+            // Detach from the launcher's terminal so the app keeps running
+            // (and stays quiet) after the portal exits.
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        // Put the app in its own session so closing the portal (or its
+        // terminal) never delivers SIGHUP/SIGINT/SIGTERM to launched apps.
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::setsid();
+                Ok(())
+            });
+        }
+        cmd.spawn()
             .map(|_| format!("Launched: {}", self.name))
             .map_err(|e| format!("Cannot launch {}: {e}", argv[0]))
     }

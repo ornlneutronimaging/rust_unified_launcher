@@ -4,7 +4,9 @@
 # Usage: ./launch_unified_launcher.sh [path/to/applications.toml]
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks (the menu entry is a symlink to this script) so REPO_DIR
+# points at the repo, not at the symlink's directory.
+REPO_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 BINARY="$REPO_DIR/target/release/rust_unified_launcher"
 
 # GUI apps need a display (e.g. a ThinLinc session).
