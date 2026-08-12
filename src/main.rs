@@ -386,7 +386,7 @@ impl eframe::App for App {
                         ui.colored_label(theme::DANGER, msg);
                     }
                     None => {
-                        ui.colored_label(theme::TEXT_EMPHASIS, "Ready");
+                        ui.colored_label(theme::text_emphasis(ui.visuals()), "Ready");
                     }
                 }
             });
@@ -510,6 +510,12 @@ impl eframe::App for App {
                 if !self.search.is_empty() && ui.small_button("✖").clicked() {
                     self.search.clear();
                 }
+                ui.with_layout(
+                    egui::Layout::right_to_left(egui::Align::Center),
+                    |ui| {
+                        theme::toggle_button(ui);
+                    },
+                );
             });
             ui.add_space(8.0);
 
@@ -557,7 +563,7 @@ impl eframe::App for App {
                         ui.label(
                             egui::RichText::new(cat_name)
                                 .strong()
-                                .color(theme::PRIMARY_STRONG),
+                                .color(theme::primary_text(ui.visuals())),
                         );
                         ui.add_space(2.0);
                     }
@@ -569,7 +575,7 @@ impl eframe::App for App {
                                 egui::RichText::new(section)
                                     .strong()
                                     .italics()
-                                    .color(theme::TEXT_EMPHASIS),
+                                    .color(theme::text_emphasis(ui.visuals())),
                             );
                             ui.add_space(2.0);
                         }
@@ -583,7 +589,7 @@ impl eframe::App for App {
                     let group = egui::Frame::group(ui.style())
                         .corner_radius(6.0)
                         .inner_margin(10.0)
-                        .fill(theme::SURFACE_WEAK)
+                        .fill(theme::surface_weak(ui.visuals()))
                         .show(ui, |ui| {
                             ui.set_width(ui.available_width());
                             ui.horizontal(|ui| {
@@ -596,7 +602,7 @@ impl eframe::App for App {
                                     );
                                     ui.label(
                                         egui::RichText::new(&app.description)
-                                            .color(theme::TEXT_EMPHASIS),
+                                            .color(theme::text_emphasis(ui.visuals())),
                                     );
                                 });
                                 ui.with_layout(
@@ -676,6 +682,9 @@ fn main() -> eframe::Result<()> {
         &title,
         options,
         Box::new(move |cc| {
+            // Saved light/dark preference, shared by all the VENUS rust
+            // tools (dark when none is saved); the search row has a toggle.
+            cc.egui_ctx.set_theme(theme::load());
             theme::apply(&cc.egui_ctx);
             Ok(Box::new(App::new(config_path)))
         }),
