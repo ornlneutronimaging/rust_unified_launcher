@@ -455,6 +455,10 @@ impl eframe::App for App {
                             }
                             let response = ui.add(
                                 egui::TextEdit::singleline(&mut self.search)
+                                    // Stable id: the ✖ button appearing/disappearing
+                                    // before this widget must not change its identity,
+                                    // or focus is lost after the first character.
+                                    .id(egui::Id::new("search_field"))
                                     .hint_text(
                                         "Type to filter by name, description or tag…",
                                     )
