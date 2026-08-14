@@ -121,6 +121,13 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_bm3dornl/launch_bm3
 tags = ["denoise"]
 
 [[app]]
+name = "Dehydration / Hydration Correction"
+description = "Denoise a stack of neutron images with the NMF dehydrate/rehydrate algorithm and export the corrected stack."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
+tags = ["denoise", "nmf", "hyperspectral", "mbirjax"]
+
+[[app]]
 name = "NRAD Spot Cleaner"
 description = "Remove spots and hot pixels from radiographs with the NRAD algorithms."
 category = "rust"
@@ -370,6 +377,14 @@ category = "venus"
 section = "General tools"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/make_shutter_value_file/rust_shutter_value/launch_shutter_value_maker.sh"]
 tags = ["venus", "shutter", "bragg", "timepix"]
+
+[[app]]
+name = "Dehydration / Hydration Correction"
+description = "Denoise a stack of neutron images with the NMF dehydrate/rehydrate algorithm and export the corrected stack."
+category = "venus"
+section = "General tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
+tags = ["denoise", "nmf", "hyperspectral", "mbirjax"]
 
 [[app]]
 name = "Hyperspectral Masker"
