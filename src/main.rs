@@ -284,6 +284,8 @@ struct App {
     /// Category id filter; `None` shows every category.
     active_category: Option<String>,
     search: String,
+    /// Give the search bar keyboard focus on the next frame (set at startup).
+    focus_search: bool,
     status: Option<Result<String, String>>,
     /// Per-app time (egui clock) of the last launch, for the cooldown.
     last_launch: HashMap<usize, f64>,
@@ -305,6 +307,7 @@ impl App {
             selected: None,
             active_category: None,
             search: String::new(),
+            focus_search: true,
             status: None,
             last_launch: HashMap::new(),
         }
@@ -426,6 +429,51 @@ impl eframe::App for App {
             }
         };
 
+        // ------------------------------------------------- search bar ------
+        // Full-width bar under the header; the list below narrows live as the
+        // user types. Focused at startup so typing filters right away.
+        egui::TopBottomPanel::top("search_bar")
+            .frame(
+                egui::Frame::new()
+                    .fill(ctx.style().visuals.panel_fill)
+                    .inner_margin(egui::Margin::symmetric(16, 8)),
+            )
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("🔍").size(16.0));
+                    ui.with_layout(
+                        egui::Layout::right_to_left(egui::Align::Center),
+                        |ui| {
+                            theme::toggle_button(ui);
+                            if !self.search.is_empty()
+                                && ui
+                                    .small_button("✖")
+                                    .on_hover_text("Clear search (Esc)")
+                                    .clicked()
+                            {
+                                self.search.clear();
+                            }
+                            let response = ui.add(
+                                egui::TextEdit::singleline(&mut self.search)
+                                    .hint_text(
+                                        "Type to filter by name, description or tag…",
+                                    )
+                                    .desired_width(ui.available_width()),
+                            );
+                            if self.focus_search {
+                                response.request_focus();
+                                self.focus_search = false;
+                            }
+                            if response.has_focus()
+                                && ui.input(|i| i.key_pressed(egui::Key::Escape))
+                            {
+                                self.search.clear();
+                            }
+                        },
+                    );
+                });
+            });
+
         // ---------------------------------------------- category sidebar ---
         let mut clicked_category: Option<Option<String>> = None;
         egui::SidePanel::left("categories")
@@ -513,24 +561,6 @@ impl eframe::App for App {
         // ------------------------------------------------- application list
         let mut launch_request: Option<usize> = None;
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                ui.label("Search:");
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.search)
-                        .hint_text("name, description or tag")
-                        .desired_width(280.0),
-                );
-                if !self.search.is_empty() && ui.small_button("✖").clicked() {
-                    self.search.clear();
-                }
-                ui.with_layout(
-                    egui::Layout::right_to_left(egui::Align::Center),
-                    |ui| {
-                        theme::toggle_button(ui);
-                    },
-                );
-            });
             ui.add_space(8.0);
 
             let visible: Vec<usize> = cfg
@@ -697,7 +727,7 @@ fn main() -> eframe::Result<()> {
         options,
         Box::new(move |cc| {
             // Saved light/dark preference, shared by all the VENUS rust
-            // tools (dark when none is saved); the search row has a toggle.
+            // tools (dark when none is saved); the search bar has a toggle.
             cc.egui_ctx.set_theme(theme::load());
             theme::apply(&cc.egui_ctx);
             Ok(Box::new(App::new(config_path)))
