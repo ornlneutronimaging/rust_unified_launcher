@@ -798,17 +798,60 @@ impl eframe::App for App {
             .map(|(i, _)| i)
             .collect();
 
+        // The "Recently used" rows shown at the top of the All view. Apps
+        // listed there are dropped from their category group below so every
+        // app appears exactly once.
+        let mut recent_rows: Vec<usize> = Vec::new();
+        if self.active_category.is_none() && self.search.is_empty() {
+            // An app can be listed in several categories under the same
+            // name; keep only its first config entry so the recent section
+            // never shows duplicates.
+            let mut seen: Vec<&str> = Vec::new();
+            let mut by_time: Vec<(usize, u64)> = cfg
+                .apps
+                .iter()
+                .enumerate()
+                .filter_map(|(i, a)| {
+                    if seen.contains(&a.name.as_str()) {
+                        return None;
+                    }
+                    seen.push(a.name.as_str());
+                    self.recent.entries.get(&a.name).map(|e| (i, e.last_epoch))
+                })
+                .collect();
+            by_time.sort_by(|a, b| b.1.cmp(&a.1));
+            by_time.truncate(RECENT_SHOWN);
+            recent_rows = by_time.into_iter().map(|(i, _)| i).collect();
+        }
+        let recent_names: Vec<&str> = recent_rows
+            .iter()
+            .map(|&i| cfg.apps[i].name.as_str())
+            .collect();
+
+        // Keyboard order follows the display: recent rows first, then the
+        // category groups (minus the apps already shown as recent).
+        let display_order: Vec<usize> = recent_rows
+            .iter()
+            .copied()
+            .chain(
+                visible
+                    .iter()
+                    .copied()
+                    .filter(|&i| !recent_names.contains(&cfg.apps[i].name.as_str())),
+            )
+            .collect();
+
         let mut launch_request: Option<usize> = None;
-        if (move_up || move_down) && !visible.is_empty() {
+        if (move_up || move_down) && !display_order.is_empty() {
             let pos = self
                 .highlighted
-                .and_then(|h| visible.iter().position(|&i| i == h));
+                .and_then(|h| display_order.iter().position(|&i| i == h));
             let new_pos = match pos {
-                Some(p) if move_down => (p + 1).min(visible.len() - 1),
+                Some(p) if move_down => (p + 1).min(display_order.len() - 1),
                 Some(p) => p.saturating_sub(1),
                 None => 0,
             };
-            self.highlighted = Some(visible[new_pos]);
+            self.highlighted = Some(display_order[new_pos]);
             self.selected = self.highlighted;
             self.scroll_to_highlight = true;
         }
@@ -954,60 +997,49 @@ impl eframe::App for App {
                 let group_by_category = self.active_category.is_none();
 
                 // ------------------------------------ recently used ----
-                if group_by_category && self.search.is_empty() {
-                    let mut recent: Vec<(usize, u64)> = cfg
-                        .apps
-                        .iter()
-                        .enumerate()
-                        .filter_map(|(i, a)| {
-                            self.recent
-                                .entries
-                                .get(&a.name)
-                                .map(|e| (i, e.last_epoch))
-                        })
-                        .collect();
-                    recent.sort_by(|a, b| b.1.cmp(&a.1));
-                    recent.truncate(RECENT_SHOWN);
-                    if !recent.is_empty() {
-                        ui.add_space(6.0);
-                        ui.label(
-                            egui::RichText::new("★ Recently used")
-                                .strong()
-                                .color(theme::primary_text(ui.visuals())),
-                        );
-                        ui.add_space(2.0);
-                        for (idx, _) in recent {
-                            let app = &cfg.apps[idx];
-                            let available =
-                                self.available.get(idx).copied().unwrap_or(false);
-                            let cooling = self
-                                .last_launch
-                                .get(&idx)
-                                .map(|t| now - t < LAUNCH_COOLDOWN)
-                                .unwrap_or(false);
-                            let (resp, clicked) = app_row(
-                                ui,
-                                app,
-                                available,
-                                cooling,
-                                self.highlighted == Some(idx),
-                            );
-                            if clicked {
-                                launch_request = Some(idx);
-                            }
-                            if ui.rect_contains_pointer(resp.rect) {
-                                self.selected = Some(idx);
-                            }
-                            ui.add_space(6.0);
+                if !recent_rows.is_empty() {
+                    ui.add_space(6.0);
+                    ui.label(
+                        egui::RichText::new("★ Recently used")
+                            .strong()
+                            .color(theme::primary_text(ui.visuals())),
+                    );
+                    ui.add_space(2.0);
+                    for &idx in &recent_rows {
+                        let app = &cfg.apps[idx];
+                        let available =
+                            self.available.get(idx).copied().unwrap_or(false);
+                        let cooling = self
+                            .last_launch
+                            .get(&idx)
+                            .map(|t| now - t < LAUNCH_COOLDOWN)
+                            .unwrap_or(false);
+                        let highlighted = self.highlighted == Some(idx);
+                        let (resp, clicked) =
+                            app_row(ui, app, available, cooling, highlighted);
+                        if clicked {
+                            launch_request = Some(idx);
                         }
-                        ui.separator();
+                        if highlighted && self.scroll_to_highlight {
+                            resp.scroll_to_me(Some(egui::Align::Center));
+                        }
+                        if ui.rect_contains_pointer(resp.rect) {
+                            self.selected = Some(idx);
+                        }
+                        ui.add_space(6.0);
                     }
+                    ui.separator();
                 }
 
                 let mut last_category: Option<&str> = None;
                 let mut last_section: Option<&str> = None;
                 for idx in visible {
                     let app = &cfg.apps[idx];
+                    // Already shown in "Recently used" above — including any
+                    // same-name entry the config lists in another category.
+                    if recent_names.contains(&app.name.as_str()) {
+                        continue;
+                    }
                     if group_by_category && last_category != Some(app.category.as_str())
                     {
                         last_category = Some(app.category.as_str());
