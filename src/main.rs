@@ -86,7 +86,12 @@ struct AppEntry {
     #[serde(default)]
     section: Option<String>,
     /// Argv of the process to spawn (first element is the executable).
+    /// May be omitted when `url` is set.
+    #[serde(default)]
     command: Vec<String>,
+    /// Web page opened in the default browser instead of running `command`.
+    #[serde(default)]
+    url: Option<String>,
     /// Working directory for the spawned process; defaults to the directory
     /// of the checked path (see `check_path`).
     #[serde(default)]
@@ -128,6 +133,9 @@ impl AppEntry {
     }
 
     fn available(&self) -> bool {
+        if self.url.is_some() {
+            return true;
+        }
         !self.command.is_empty()
             && self.checked_path().map(|p| p.exists()).unwrap_or(true)
     }
@@ -135,8 +143,8 @@ impl AppEntry {
     /// Spawn the app detached. Returns the child (watched for a few seconds
     /// to surface immediate failures) and the log file capturing its output.
     fn launch(&self) -> Result<(Child, Option<PathBuf>), String> {
-        if self.command.is_empty() {
-            return Err(format!("{}: no command configured", self.name));
+        if self.command.is_empty() && self.url.is_none() {
+            return Err(format!("{}: no command or url configured", self.name));
         }
         if self.clear_fontconfig {
             if let Some(home) = std::env::var_os("HOME") {
@@ -146,14 +154,20 @@ impl AppEntry {
             }
         }
 
-        let mut argv: Vec<String> = self.command.clone();
+        let mut argv: Vec<String> = if let Some(url) = &self.url {
+            let opener = find_url_opener().ok_or_else(|| {
+                format!("{}: no browser opener (xdg-open/firefox) found", self.name)
+            })?;
+            vec![opener, url.clone()]
+        } else {
+            self.command.clone()
+        };
         if self.in_terminal {
             if let Some((term, term_args)) = find_terminal() {
                 let mut wrapped = vec![term];
                 wrapped.extend(term_args);
                 if self.hold_terminal {
-                    let joined = self
-                        .command
+                    let joined = argv
                         .iter()
                         .map(|a| shell_quote(a))
                         .collect::<Vec<_>>()
@@ -230,6 +244,11 @@ impl AppEntry {
             self.name.to_lowercase().contains(&token)
                 || self.description.to_lowercase().contains(&token)
                 || self.tags.iter().any(|t| t.to_lowercase().contains(&token))
+                || self
+                    .url
+                    .as_ref()
+                    .map(|u| u.to_lowercase().contains(&token))
+                    .unwrap_or(false)
         })
     }
 }
@@ -252,6 +271,20 @@ fn validate_config(cfg: &Config) -> Vec<String> {
 /// Single-quote a string for safe interpolation into a `bash -c` command.
 fn shell_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
+}
+
+/// Locate a program able to open a URL in the user's default browser.
+fn find_url_opener() -> Option<String> {
+    let path = std::env::var_os("PATH")?;
+    for name in ["xdg-open", "firefox", "google-chrome", "chromium-browser"] {
+        for dir in std::env::split_paths(&path) {
+            let full = dir.join(name);
+            if full.is_file() {
+                return Some(full.to_string_lossy().into_owned());
+            }
+        }
+    }
+    None
 }
 
 /// Locate a terminal emulator on PATH; returns (path, pre-command args).
@@ -575,7 +608,13 @@ fn app_row(
                 egui::Layout::right_to_left(egui::Align::Center),
                 |ui| {
                     ui.add_enabled_ui(available && !cooling, |ui| {
-                        let label = if cooling { "Launching..." } else { "Launch" };
+                        let label = if cooling {
+                            "Launching..."
+                        } else if app.url.is_some() {
+                            "Open"
+                        } else {
+                            "Launch"
+                        };
                         let mut button = egui::Button::new(
                             egui::RichText::new(label)
                                 .color(theme::TEXT_WHITE)
@@ -586,10 +625,11 @@ fn app_row(
                         if available && !cooling {
                             button = button.fill(theme::PRIMARY_RICH);
                         }
-                        let hover = app
-                            .checked_path()
-                            .map(|p| p.display().to_string())
-                            .unwrap_or_else(|| app.command.join(" "));
+                        let hover = app.url.clone().unwrap_or_else(|| {
+                            app.checked_path()
+                                .map(|p| p.display().to_string())
+                                .unwrap_or_else(|| app.command.join(" "))
+                        });
                         let resp = ui
                             .add(button)
                             .on_hover_text(&hover)
@@ -979,10 +1019,12 @@ impl eframe::App for App {
                     ui.add_space(4.0);
                 }
                 ui.label(
-                    egui::RichText::new(app.command.join(" "))
-                        .weak()
-                        .small()
-                        .monospace(),
+                    egui::RichText::new(
+                        app.url.clone().unwrap_or_else(|| app.command.join(" ")),
+                    )
+                    .weak()
+                    .small()
+                    .monospace(),
                 );
                 ui.add_space(8.0);
                 ui.separator();
@@ -1227,7 +1269,9 @@ impl eframe::App for App {
                 self.last_launch.insert(idx, now);
                 match app.launch() {
                     Ok((child, log)) => {
-                        self.status = Some(Ok(format!("Launched: {}", app.name)));
+                        let verb =
+                            if app.url.is_some() { "Opened" } else { "Launched" };
+                        self.status = Some(Ok(format!("{verb}: {}", app.name)));
                         self.pending.push(PendingLaunch {
                             name: app.name.clone(),
                             child,

@@ -16,6 +16,9 @@ by a config file instead of hardcoded entries.
 - Commands are usually the existing `menu/start_*` or repo `launch_*.sh`
   scripts, so the launch logic stays in one place. Scripts are invoked through
   `/bin/bash` because some have no shebang line.
+- An entry with `url = "https://..."` (instead of `command`) is a web link:
+  it opens the page in the default browser (xdg-open / firefox, first found
+  on PATH), is always shown as available, and its button reads **Open**.
 - `in_terminal = true` wraps the command in gnome-terminal / konsole /
   xfce4-terminal / xterm (first found on PATH) so pixi/conda setup output
   stays visible; if none exists, the app is launched directly.

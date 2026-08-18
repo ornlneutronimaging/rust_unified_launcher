@@ -12,6 +12,9 @@
 #                                            # category; keep apps of the same
 #                                            # section consecutive in this file
 #   command     = ["argv0", "arg1", ...]     # scripts go through /bin/bash
+#   url         = "https://..."              # open a web page in the default
+#                                            # browser instead of running a
+#                                            # command (command may be omitted)
 #   workdir     = "/optional/working/dir"    # default: dir of the checked path
 #   preview     = "/optional/screenshot.png" # shown in the right-hand panel
 #   check_path  = "/optional/path"           # availability check; default is
@@ -433,6 +436,16 @@ description = "Load an uncorrected Timepix TIFF, interactively align the four MC
 category = "restricted"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_chips_correction/launch_chips_aligner.sh"]
 tags = ["mcp", "chips", "timepix", "alignment", "offsets"]
+
+# ---- Web links ----
+
+[[app]]
+name = "EIC Utils"
+description = "EIC utilities web page on dasdev1.sns.gov."
+category = "restricted"
+section = "Web links"
+url = "https://dasdev1.sns.gov/eic-utils"
+tags = ["web", "link", "eic", "das", "admin"]
 
 # --------------------------------------------------------------------------
 # System tools
