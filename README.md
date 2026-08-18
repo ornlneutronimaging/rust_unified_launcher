@@ -19,6 +19,12 @@ by a config file instead of hardcoded entries.
 - `in_terminal = true` wraps the command in gnome-terminal / konsole /
   xfce4-terminal / xterm (first found on PATH) so pixi/conda setup output
   stays visible; if none exists, the app is launched directly.
+- A `[[category]]` with `passwords = ["word1", "word2"]` shows as 🔒 in the
+  sidebar and asks for one of those passwords (case-insensitive) before
+  revealing its applications; until unlocked they are hidden from the All
+  view, the search results and "Recently used". The unlock lasts for the
+  session. Passwords live in plain text in the config, so this is a soft
+  gate against casual browsing, not a security boundary.
 
 ## Adding / editing an application
 

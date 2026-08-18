@@ -24,6 +24,13 @@
 #                                            # tools that print a report & quit
 #   clear_fontconfig = true                  # rm -rf ~/.cache/fontconfig first
 #   tags        = ["extra", "search", "words"]
+#
+# A [[category]] may declare passwords:
+#   passwords = ["word1", "word2"]           # category is locked (🔒) until one
+#                                            # of these is typed (case doesn't
+#                                            # matter); its apps stay hidden
+#                                            # from All / search / Recently
+#                                            # used until unlocked
 
 title = "Neutron Imaging Launcher"
 subtitle = "All VENUS / MARS imaging applications in one place"
@@ -55,6 +62,11 @@ name = "VENUS"
 [[category]]
 id = "tools"
 name = "System Tools"
+
+[[category]]
+id = "restricted"
+name = "Restricted"
+passwords = ["venus", "mars"]
 
 # --------------------------------------------------------------------------
 # Rust applications
@@ -410,6 +422,17 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/venus_image_seg
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/class_mask_web_tool.png"
 tags = ["segmentation", "mask", "labeling", "training", "web"]
+
+# --------------------------------------------------------------------------
+# Restricted (password protected — see the [[category]] block above)
+# --------------------------------------------------------------------------
+
+[[app]]
+name = "MCP Chips Aligner"
+description = "Load an uncorrected Timepix TIFF, interactively align the four MCP chips and export the offsets as a config.py snippet."
+category = "restricted"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_chips_correction/launch_chips_aligner.sh"]
+tags = ["mcp", "chips", "timepix", "alignment", "offsets"]
 
 # --------------------------------------------------------------------------
 # System tools

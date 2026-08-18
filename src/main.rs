@@ -15,7 +15,7 @@ mod theme;
 
 use eframe::egui;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::os::unix::process::CommandExt;
@@ -67,6 +67,11 @@ fn default_subtitle() -> String {
 struct Category {
     id: String,
     name: String,
+    /// Non-empty: the category is locked until one of these passwords is
+    /// typed (case-insensitive). While locked its apps are hidden from the
+    /// All view, the search results and "Recently used".
+    #[serde(default)]
+    passwords: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -420,6 +425,14 @@ struct App {
     last_launch: HashMap<usize, f64>,
     /// Launch history (per app name), shown as "Recently used".
     recent: RecentFile,
+    /// Ids of password-protected categories unlocked this session.
+    unlocked: HashSet<String>,
+    /// Contents of the password prompt shown for a locked category.
+    password_input: String,
+    /// A wrong password was just entered (shows the error line).
+    password_wrong: bool,
+    /// Give the password field keyboard focus on the next frame.
+    focus_password: bool,
     /// Children being watched / reaped.
     pending: Vec<PendingLaunch>,
     /// Egui times of the last config-mtime / availability checks.
@@ -446,6 +459,10 @@ impl App {
             status: None,
             last_launch: HashMap::new(),
             recent: load_recent(),
+            unlocked: HashSet::new(),
+            password_input: String::new(),
+            password_wrong: false,
+            focus_password: false,
             pending: Vec::new(),
             last_config_check: 0.0,
             last_availability_check: 0.0,
@@ -738,6 +755,14 @@ impl eframe::App for App {
             }
         };
 
+        // Categories whose apps stay hidden until their password is typed.
+        let locked: HashSet<&str> = cfg
+            .categories
+            .iter()
+            .filter(|c| !c.passwords.is_empty() && !self.unlocked.contains(&c.id))
+            .map(|c| c.id.as_str())
+            .collect();
+
         // ------------------------------------------------- search bar ------
         // Full-width bar under the header; the list below narrows live as the
         // user types. Focused at startup so typing filters right away.
@@ -789,10 +814,12 @@ impl eframe::App for App {
             .iter()
             .enumerate()
             .filter(|(_, a)| {
-                self.active_category
-                    .as_deref()
-                    .map(|c| a.category == c)
-                    .unwrap_or(true)
+                !locked.contains(a.category.as_str())
+                    && self
+                        .active_category
+                        .as_deref()
+                        .map(|c| a.category == c)
+                        .unwrap_or(true)
                     && a.matches(&self.search)
             })
             .map(|(i, _)| i)
@@ -812,7 +839,9 @@ impl eframe::App for App {
                 .iter()
                 .enumerate()
                 .filter_map(|(i, a)| {
-                    if seen.contains(&a.name.as_str()) {
+                    if locked.contains(a.category.as_str())
+                        || seen.contains(&a.name.as_str())
+                    {
                         return None;
                     }
                     seen.push(a.name.as_str());
@@ -880,7 +909,11 @@ impl eframe::App for App {
                 ui.add_space(12.0);
                 ui.label(theme::section_heading("Categories"));
                 ui.add_space(6.0);
-                let total = cfg.apps.len();
+                let total = cfg
+                    .apps
+                    .iter()
+                    .filter(|a| !locked.contains(a.category.as_str()))
+                    .count();
                 if ui
                     .selectable_label(
                         self.active_category.is_none(),
@@ -895,10 +928,12 @@ impl eframe::App for App {
                         cfg.apps.iter().filter(|a| a.category == cat.id).count();
                     let is_active =
                         self.active_category.as_deref() == Some(cat.id.as_str());
-                    if ui
-                        .selectable_label(is_active, format!("{}  ({count})", cat.name))
-                        .clicked()
-                    {
+                    let label = if locked.contains(cat.id.as_str()) {
+                        format!("🔒 {}", cat.name)
+                    } else {
+                        format!("{}  ({count})", cat.name)
+                    };
+                    if ui.selectable_label(is_active, label).clicked() {
                         clicked_category = Some(Some(cat.id.clone()));
                     }
                 }
@@ -982,6 +1017,81 @@ impl eframe::App for App {
         // ------------------------------------------------- application list
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.add_space(8.0);
+
+            // A locked category shows a password prompt instead of its apps.
+            let locked_cat = self
+                .active_category
+                .as_deref()
+                .filter(|c| locked.contains(*c))
+                .and_then(|c| cfg.categories.iter().find(|cat| cat.id == c));
+            if let Some(cat) = locked_cat {
+                ui.vertical_centered(|ui| {
+                    ui.add_space(48.0);
+                    ui.label(egui::RichText::new("🔒").size(40.0));
+                    ui.add_space(8.0);
+                    ui.label(
+                        egui::RichText::new(format!("{} is protected", cat.name))
+                            .strong()
+                            .size(18.0),
+                    );
+                    ui.add_space(4.0);
+                    ui.label(
+                        egui::RichText::new("Enter the password to show its applications")
+                            .color(theme::text_emphasis(ui.visuals())),
+                    );
+                    ui.add_space(12.0);
+                    let response = ui.add(
+                        egui::TextEdit::singleline(&mut self.password_input)
+                            .password(true)
+                            .hint_text("Password")
+                            .desired_width(220.0),
+                    );
+                    if self.focus_password {
+                        response.request_focus();
+                        self.focus_password = false;
+                    }
+                    ui.add_space(8.0);
+                    // `enter` is consumed globally before any widget sees it;
+                    // while this prompt is shown the app list is empty, so it
+                    // can only mean "submit the password".
+                    let submitted = ui
+                        .add(
+                            egui::Button::new(
+                                egui::RichText::new("Unlock")
+                                    .color(theme::TEXT_WHITE)
+                                    .strong(),
+                            )
+                            .fill(theme::PRIMARY_RICH)
+                            .corner_radius(6.0)
+                            .min_size(egui::vec2(100.0, 30.0)),
+                        )
+                        .clicked()
+                        || enter;
+                    if submitted {
+                        let typed = self.password_input.trim().to_lowercase();
+                        if !typed.is_empty()
+                            && cat
+                                .passwords
+                                .iter()
+                                .any(|p| p.to_lowercase() == typed)
+                        {
+                            self.unlocked.insert(cat.id.clone());
+                            self.password_wrong = false;
+                            self.status =
+                                Some(Ok(format!("{} unlocked", cat.name)));
+                        } else {
+                            self.password_wrong = true;
+                            self.focus_password = true;
+                        }
+                        self.password_input.clear();
+                    }
+                    if self.password_wrong {
+                        ui.add_space(8.0);
+                        ui.colored_label(theme::DANGER, "Wrong password, try again");
+                    }
+                });
+                return;
+            }
 
             if visible.is_empty() {
                 ui.vertical_centered(|ui| {
@@ -1096,7 +1206,14 @@ impl eframe::App for App {
         self.scroll_to_highlight = false;
 
         if let Some(new_cat) = clicked_category {
+            let opens_prompt = new_cat
+                .as_deref()
+                .map(|c| locked.contains(c))
+                .unwrap_or(false);
             self.active_category = new_cat;
+            self.password_input.clear();
+            self.password_wrong = false;
+            self.focus_password = opens_prompt;
         }
         if let Some(idx) = launch_request {
             let available = self.available.get(idx).copied().unwrap_or(false);
