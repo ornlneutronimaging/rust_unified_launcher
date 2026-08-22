@@ -80,6 +80,7 @@ name = "TIFF Viewer"
 description = "Browse and inspect folders of TIFF images from a measurement."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tiff_viewer/launch_rust_tiff_viewer.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tiff_viewer_preview.png"
 tags = ["images", "viewer"]
 
 [[app]]
@@ -87,6 +88,7 @@ name = "TOF Profile Viewer"
 description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF profiles."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_rebin_viewer/launch_tof_profile_rebin_viewer.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tof_profile_viewer_preview.png"
 tags = ["time of flight"]
 
 [[app]]
@@ -101,12 +103,22 @@ name = "Crop TIFF"
 description = "Select a rectangular crop region on a TIFF or .npy stack and export it."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_crop_tiff/launch_crop_tiff.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/crop_tiff_preview.png"
+
+[[app]]
+name = "Cookie Cutter"
+description = "Define rectangular boxes (with optional tilt) on an image stack and export each box as its own cropped stack."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_cookie_cutter/launch_cookie_cutter.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/cookie_cutter_preview.png"
+tags = ["crop", "box", "stack", "tilt"]
 
 [[app]]
 name = "CT Reconstruction"
 description = "Neutron CT reconstruction workflows for VENUS and MARS."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ct_reconstruction/launch_ct_reconstruction.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ct_reconstruction_preview.png"
 tags = ["tomography"]
 
 [[app]]
@@ -114,6 +126,7 @@ name = "Volume 3D Viewer"
 description = "Explore reconstructed CT volumes (TIFF slices or multi-page TIFF) as orthogonal slices or GPU-rendered 3-D volume."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_3d_visualization/launch_3d_visualization.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_3d_preview.png"
 tags = ["3d", "volume", "ct", "tomography", "viewer"]
 
 [[app]]
@@ -121,6 +134,7 @@ name = "Hyperspectral Masker"
 description = "Create a copy of an input data set with selected pixels masked."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_hyperspectra_masker/launch_rust_hyperspectral_makser.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/hyperspectral_masker_preview.png"
 
 [[app]]
 name = "Auto Normalization Monitor"
@@ -133,6 +147,7 @@ name = "BM3D ORNL GUI"
 description = "Denoise imaging data / sinograms with the BM3D ORNL algorithm."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_bm3dornl/launch_bm3dornl_gui.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/bm3dornlgui_preview.png"
 tags = ["denoise"]
 
 [[app]]
@@ -140,7 +155,16 @@ name = "Dehydration / Hydration Correction"
 description = "Denoise a stack of neutron images with the NMF dehydrate/rehydrate algorithm and export the corrected stack."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
 tags = ["denoise", "nmf", "hyperspectral", "mbirjax"]
+
+[[app]]
+name = "Workflow Runner"
+description = "Job manager over a table of runs: NeuNorm normalization, crop regions, and dehydration/hydration — with auto-run and per-step logs."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_workflow_runner/launch_workflow_runner.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/workflow_runner.png"
+tags = ["workflow", "pipeline", "normalization", "crop", "dehydration", "neunorm", "batch"]
 
 [[app]]
 name = "NRAD Spot Cleaner"
@@ -356,6 +380,15 @@ category = "venus"
 section = "Normalization"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
 
+[[app]]
+name = "Workflow Runner"
+description = "Job manager over a table of runs: NeuNorm normalization, crop regions, and dehydration/hydration — with auto-run and per-step logs."
+category = "venus"
+section = "Normalization"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_workflow_runner/launch_workflow_runner.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/workflow_runner.png"
+tags = ["workflow", "pipeline", "normalization", "crop", "dehydration", "neunorm", "batch"]
+
 # ---- Visualization ----
 
 [[app]]
@@ -364,6 +397,7 @@ description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF 
 category = "venus"
 section = "Visualization"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_rebin_viewer/launch_tof_profile_rebin_viewer.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tof_profile_viewer_preview.png"
 tags = ["time of flight"]
 
 [[app]]
@@ -372,6 +406,7 @@ description = "Explore reconstructed CT volumes (TIFF slices or multi-page TIFF)
 category = "venus"
 section = "Visualization"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_3d_visualization/launch_3d_visualization.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_3d_preview.png"
 tags = ["3d", "volume", "ct", "tomography", "viewer"]
 
 [[app]]
@@ -399,6 +434,7 @@ description = "Denoise a stack of neutron images with the NMF dehydrate/rehydrat
 category = "venus"
 section = "General tools"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
 tags = ["denoise", "nmf", "hyperspectral", "mbirjax"]
 
 [[app]]
@@ -407,6 +443,7 @@ description = "Create a copy of an input data set with selected pixels masked."
 category = "venus"
 section = "General tools"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_hyperspectra_masker/launch_rust_hyperspectral_makser.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/hyperspectral_masker_preview.png"
 
 [[app]]
 name = "HyperCTui"
