@@ -122,6 +122,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ct
 tags = ["tomography"]
 
 [[app]]
+name = "H5 to TIFF Exporter"
+description = "Extract the normalized projection stacks from a CT reconstruction checkpoint (h5) as float32 TIFF images."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_h5_to_tiff_exporter/launch_h5_to_tiff_exporter.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/h5_to_tiff_exporter_preview.png"
+tags = ["tomography", "hdf5", "tiff", "export", "normalized"]
+
+[[app]]
 name = "Volume 3D Viewer"
 description = "Explore reconstructed CT volumes (TIFF slices or multi-page TIFF) as orthogonal slices or GPU-rendered 3-D volume."
 category = "rust"
@@ -466,6 +474,14 @@ tags = ["segmentation", "mask", "labeling", "training", "web"]
 # --------------------------------------------------------------------------
 # Restricted (password protected — see the [[category]] block above)
 # --------------------------------------------------------------------------
+
+[[app]]
+name = "Manual VENUS autoreduction (Anton's correction)"
+description = "Test the VENUS autoreduction script (reduce_VENUS.py) with different pixi environments and compare the raw and corrected stacks."
+category = "restricted"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_reduce_venus_tester/launch_reduce_venus_tester.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/reduce_venus_tester.png"
+tags = ["autoreduction", "reduce", "pixi", "neunorm", "mcp", "compare", "anton", "manual"]
 
 [[app]]
 name = "MCP Chips Aligner"
