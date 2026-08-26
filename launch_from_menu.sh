@@ -31,7 +31,12 @@ for var in DISPLAY WAYLAND_DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS; do
     [[ -n "${!var:-}" ]] && ENV_ARGS+=("--setenv=$var=${!var}")
 done
 
+# KillMode=process: when the portal exits, systemd would otherwise kill every
+# process left in the unit's cgroup — i.e. all the apps the portal launched
+# (their setsid() changes the session, not the cgroup). Only the main process
+# (the portal itself, already gone) may be targeted; launched apps live on.
 if systemd-run --user --collect --quiet "${ENV_ARGS[@]}" \
+        --property=KillMode=process \
         --property=StandardOutput=append:"$LOG_FILE" \
         --property=StandardError=append:"$LOG_FILE" \
         "$REPO_DIR/launch_unified_launcher.sh" "$@" 2>> "$LOG_FILE"; then
