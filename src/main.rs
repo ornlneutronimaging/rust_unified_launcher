@@ -781,14 +781,24 @@ impl eframe::App for App {
             Err(msg) => {
                 let msg = msg.clone();
                 egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.add_space(24.0);
-                    ui.vertical_centered(|ui| {
-                        ui.colored_label(theme::DANGER, "Cannot load the application list");
-                        ui.add_space(8.0);
-                        ui.label(msg);
-                        ui.add_space(8.0);
-                        ui.label("Fix the file, then press \"Reload config\" below.");
-                    });
+                    // A long TOML error can outgrow a short window; scroll
+                    // instead of clipping the advice at the bottom.
+                    egui::ScrollArea::vertical()
+                        .id_salt("config_error_scroll")
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            ui.add_space(24.0);
+                            ui.vertical_centered(|ui| {
+                                ui.colored_label(
+                                    theme::DANGER,
+                                    "Cannot load the application list",
+                                );
+                                ui.add_space(8.0);
+                                ui.label(msg);
+                                ui.add_space(8.0);
+                                ui.label("Fix the file, then press \"Reload config\" below.");
+                            });
+                        });
                 });
                 // Keep watching the file so the fix is picked up on its own.
                 ctx.request_repaint_after(std::time::Duration::from_secs(1));
@@ -948,37 +958,44 @@ impl eframe::App for App {
             .exact_width(CATEGORY_PANEL_WIDTH)
             .resizable(false)
             .show(ctx, |ui| {
-                ui.add_space(12.0);
-                ui.label(theme::section_heading("Categories"));
-                ui.add_space(6.0);
-                let total = cfg
-                    .apps
-                    .iter()
-                    .filter(|a| !locked.contains(a.category.as_str()))
-                    .count();
-                if ui
-                    .selectable_label(
-                        self.active_category.is_none(),
-                        format!("All applications  ({total})"),
-                    )
-                    .clicked()
-                {
-                    clicked_category = Some(None);
-                }
-                for cat in &cfg.categories {
-                    let count =
-                        cfg.apps.iter().filter(|a| a.category == cat.id).count();
-                    let is_active =
-                        self.active_category.as_deref() == Some(cat.id.as_str());
-                    let label = if locked.contains(cat.id.as_str()) {
-                        format!("🔒 {}", cat.name)
-                    } else {
-                        format!("{}  ({count})", cat.name)
-                    };
-                    if ui.selectable_label(is_active, label).clicked() {
-                        clicked_category = Some(Some(cat.id.clone()));
-                    }
-                }
+                // Many categories (or the large-text mode) can outgrow a
+                // short window; scroll instead of clipping the last ones.
+                egui::ScrollArea::vertical()
+                    .id_salt("categories_scroll")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        ui.add_space(12.0);
+                        ui.label(theme::section_heading("Categories"));
+                        ui.add_space(6.0);
+                        let total = cfg
+                            .apps
+                            .iter()
+                            .filter(|a| !locked.contains(a.category.as_str()))
+                            .count();
+                        if ui
+                            .selectable_label(
+                                self.active_category.is_none(),
+                                format!("All applications  ({total})"),
+                            )
+                            .clicked()
+                        {
+                            clicked_category = Some(None);
+                        }
+                        for cat in &cfg.categories {
+                            let count =
+                                cfg.apps.iter().filter(|a| a.category == cat.id).count();
+                            let is_active =
+                                self.active_category.as_deref() == Some(cat.id.as_str());
+                            let label = if locked.contains(cat.id.as_str()) {
+                                format!("🔒 {}", cat.name)
+                            } else {
+                                format!("{}  ({count})", cat.name)
+                            };
+                            if ui.selectable_label(is_active, label).clicked() {
+                                clicked_category = Some(Some(cat.id.clone()));
+                            }
+                        }
+                    });
             });
 
         // ------------------------------------------------- preview panel ---
@@ -1001,61 +1018,77 @@ impl eframe::App for App {
                 let Some(app) = cfg.apps.get(idx) else {
                     return;
                 };
-                ui.vertical_centered(|ui| {
-                    ui.label(egui::RichText::new(&app.name).strong().size(16.0));
-                });
-                ui.add_space(6.0);
-                if !app.description.is_empty() {
-                    ui.label(
-                        egui::RichText::new(&app.description)
-                            .color(theme::text_emphasis(ui.visuals())),
-                    );
-                    ui.add_space(4.0);
-                }
-                if !app.tags.is_empty() {
-                    ui.label(
-                        egui::RichText::new(format!("Tags: {}", app.tags.join(", ")))
-                            .weak()
-                            .small(),
-                    );
-                    ui.add_space(4.0);
-                }
-                ui.label(
-                    egui::RichText::new(
-                        app.url.clone().unwrap_or_else(|| app.command.join(" ")),
-                    )
-                    .weak()
-                    .small()
-                    .monospace(),
-                );
-                ui.add_space(8.0);
-                ui.separator();
-                ui.add_space(8.0);
-                if !self.previews.contains_key(&idx) {
-                    let preview = load_preview(ctx, app, idx);
-                    self.previews.insert(idx, preview);
-                }
-                match self.previews.get(&idx) {
-                    Some(Preview::Loaded(tex)) => {
+                // The screenshot adapts to the remaining height, but a long
+                // description can outgrow a short window. The panel height
+                // is measured before entering the scroll area — inside it
+                // the available height is unbounded — and the minimum image
+                // height below is what makes the scroll bar appear.
+                let panel_h = ui.available_height();
+                egui::ScrollArea::vertical()
+                    .id_salt("preview_scroll")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
                         ui.vertical_centered(|ui| {
-                            ui.add(
-                                egui::Image::from_texture(tex)
-                                    .max_width(ui.available_width())
-                                    .max_height(ui.available_height() - 12.0),
-                            );
+                            ui.label(egui::RichText::new(&app.name).strong().size(16.0));
                         });
-                    }
-                    _ => {
-                        ui.vertical_centered(|ui| {
-                            ui.add_space(24.0);
+                        ui.add_space(6.0);
+                        if !app.description.is_empty() {
                             ui.label(
-                                egui::RichText::new("No preview available")
-                                    .weak()
-                                    .italics(),
+                                egui::RichText::new(&app.description)
+                                    .color(theme::text_emphasis(ui.visuals())),
                             );
-                        });
-                    }
-                }
+                            ui.add_space(4.0);
+                        }
+                        if !app.tags.is_empty() {
+                            ui.label(
+                                egui::RichText::new(format!("Tags: {}", app.tags.join(", ")))
+                                    .weak()
+                                    .small(),
+                            );
+                            ui.add_space(4.0);
+                        }
+                        ui.label(
+                            egui::RichText::new(
+                                app.url.clone().unwrap_or_else(|| app.command.join(" ")),
+                            )
+                            .weak()
+                            .small()
+                            .monospace(),
+                        );
+                        ui.add_space(8.0);
+                        ui.separator();
+                        ui.add_space(8.0);
+                        if !self.previews.contains_key(&idx) {
+                            let preview = load_preview(ctx, app, idx);
+                            self.previews.insert(idx, preview);
+                        }
+                        let image_h = (panel_h
+                            - ui.min_rect().height()
+                            - ui.spacing().item_spacing.y
+                            - 12.0)
+                            .max(120.0);
+                        match self.previews.get(&idx) {
+                            Some(Preview::Loaded(tex)) => {
+                                ui.vertical_centered(|ui| {
+                                    ui.add(
+                                        egui::Image::from_texture(tex)
+                                            .max_width(ui.available_width())
+                                            .max_height(image_h),
+                                    );
+                                });
+                            }
+                            _ => {
+                                ui.vertical_centered(|ui| {
+                                    ui.add_space(24.0);
+                                    ui.label(
+                                        egui::RichText::new("No preview available")
+                                            .weak()
+                                            .italics(),
+                                    );
+                                });
+                            }
+                        }
+                    });
             });
 
         // ------------------------------------------------- application list
@@ -1069,7 +1102,13 @@ impl eframe::App for App {
                 .filter(|c| locked.contains(*c))
                 .and_then(|c| cfg.categories.iter().find(|cat| cat.id == c));
             if let Some(cat) = locked_cat {
-                ui.vertical_centered(|ui| {
+                // The prompt is taller than a very short window (especially
+                // in the large-text mode); scroll instead of clipping the
+                // Unlock button off the bottom.
+                egui::ScrollArea::vertical()
+                    .id_salt("unlock_scroll")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| ui.vertical_centered(|ui| {
                     ui.add_space(48.0);
                     ui.label(egui::RichText::new("🔒").size(40.0));
                     ui.add_space(8.0);
@@ -1133,7 +1172,7 @@ impl eframe::App for App {
                         ui.add_space(8.0);
                         ui.colored_label(theme::DANGER, "Wrong password, try again");
                     }
-                });
+                }));
                 return;
             }
 
