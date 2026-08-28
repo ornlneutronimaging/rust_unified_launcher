@@ -12,6 +12,7 @@
 //! search (and closes the launcher when the search is already empty).
 
 mod theme;
+mod zoom;
 
 use eframe::egui;
 use serde::{Deserialize, Serialize};
@@ -819,6 +820,7 @@ impl eframe::App for App {
                         egui::Layout::right_to_left(egui::Align::Center),
                         |ui| {
                             theme::toggle_button(ui);
+                            zoom::toggle_button(ui);
                             if !self.search.is_empty()
                                 && ui
                                     .small_button("✖")
@@ -1320,6 +1322,7 @@ fn main() -> eframe::Result<()> {
             // Saved light/dark preference, shared by all the VENUS rust
             // tools (dark when none is saved); the search bar has a toggle.
             cc.egui_ctx.set_theme(theme::load());
+            cc.egui_ctx.set_zoom_factor(zoom::load());
             theme::apply(&cc.egui_ctx);
             Ok(Box::new(App::new(config_path)))
         }),

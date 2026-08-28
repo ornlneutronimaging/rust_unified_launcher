@@ -2492,6 +2492,7 @@ name = "rust_unified_launcher"
 version = "0.1.0"
 dependencies = [
  "eframe",
+ "egui",
  "image",
  "libc",
  "serde",
