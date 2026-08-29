@@ -490,6 +490,14 @@ category = "restricted"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_chips_correction/launch_chips_aligner.sh"]
 tags = ["mcp", "chips", "timepix", "alignment", "offsets"]
 
+[[app]]
+name = "MCP Signal Evolution"
+description = "Track the health of the Timepix/MCP detector over time: monitor and detector profiles per run, zero/dead/hot pixel statistics, shared history database."
+category = "restricted"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_signal_evolution/launch_mcp_signal_evolution.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/mcp_signal_evolution_preview.png"
+tags = ["mcp", "timepix", "detector", "monitor", "evolution", "health", "pixels", "database"]
+
 # ---- Web links ----
 
 [[app]]
