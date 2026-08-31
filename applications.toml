@@ -114,6 +114,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/cookie_
 tags = ["crop", "box", "stack", "tilt"]
 
 [[app]]
+name = "Image Stitcher"
+description = "Stitch two or more TIFF images: automatic phase-correlation alignment, manual drag/nudge fine-tuning, a transparency overlap view, and a depth-weighted average blend exported as float32 TIFF."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_image_stitcher/launch_image_stitcher.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_image_stitcher_preview.png"
+tags = ["stitch", "overlap", "align", "phase correlation", "blend", "tiles", "high resolution", "low resolution"]
+
+[[app]]
 name = "CT Reconstruction"
 description = "Neutron CT reconstruction workflows for VENUS and MARS."
 category = "rust"
