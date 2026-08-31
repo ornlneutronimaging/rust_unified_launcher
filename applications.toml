@@ -92,6 +92,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tof_pro
 tags = ["time of flight"]
 
 [[app]]
+name = "Bubble Profile"
+description = "Vertical intensity profiles of a cropped region on a MARS/VENUS radiograph stack, with drifting gas bubbles automatically masked out — whole-stack heat map and CSV export."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_bubble_profile/launch_bubble_profile.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_bubble_profile_preview.png"
+tags = ["bubble", "profile", "mask", "battery", "electrolyte", "heat map", "csv"]
+
+[[app]]
 name = "ROI Selector"
 description = "Select regions of interest on an imaging data set and export a mask file."
 category = "rust"
