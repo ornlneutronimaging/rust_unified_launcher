@@ -63,6 +63,10 @@ id = "venus"
 name = "VENUS"
 
 [[category]]
+id = "mars"
+name = "MARS"
+
+[[category]]
 id = "tools"
 name = "System Tools"
 
@@ -161,10 +165,11 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_hyperspectra_masker
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/hyperspectral_masker_preview.png"
 
 [[app]]
-name = "Auto Normalization Monitor"
+name = "Auto Normalization Monitor at VENUS"
 description = "Monitor the state of the VENUS auto normalization pipeline."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
+tags = ["normalization", "venus", "auto"]
 
 [[app]]
 name = "BM3D ORNL GUI"
@@ -398,11 +403,12 @@ tags = ["bragg edge", "fitting", "web", "santisteban"]
 # ---- Normalization ----
 
 [[app]]
-name = "Auto Normalization Monitor"
+name = "Auto Normalization Monitor at VENUS"
 description = "Monitor the state of the VENUS auto normalization pipeline."
 category = "venus"
 section = "Normalization"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
+tags = ["normalization", "venus", "auto"]
 
 [[app]]
 name = "Workflow Runner"
@@ -488,6 +494,17 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/class_m
 tags = ["segmentation", "mask", "labeling", "training", "web"]
 
 # --------------------------------------------------------------------------
+# MARS
+# --------------------------------------------------------------------------
+
+[[app]]
+name = "Auto Normalization Monitor at MARS"
+description = "Monitor the state of the MARS auto normalization pipeline."
+category = "mars"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor_mars/launch_autonormalization_monitor_mars.sh"]
+tags = ["normalization", "mars", "cg1d", "auto"]
+
+# --------------------------------------------------------------------------
 # Restricted (password protected — see the [[category]] block above)
 # --------------------------------------------------------------------------
 
@@ -500,11 +517,27 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/reduce_
 tags = ["autoreduction", "reduce", "pixi", "neunorm", "mcp", "compare", "anton", "manual"]
 
 [[app]]
+name = "VENUS Timepix1 Autoreduce Checker"
+description = "Verify the Timepix autoreduction of a run: raw and autoreduced stacks side by side with mirrored ROI profiles (file index / TOF / lambda / energy), pass/fail verdict and reduction_log .log/.err viewers."
+category = "restricted"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autoreduce_checker/launch_autoreduce_checker.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autoreduce_checker_preview.png"
+tags = ["autoreduction", "check", "verify", "timepix", "mcp", "raw", "compare", "profile", "log"]
+
+[[app]]
 name = "MCP Chips Aligner"
 description = "Load an uncorrected Timepix TIFF, interactively align the four MCP chips and export the offsets as a config.py snippet."
 category = "restricted"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_chips_correction/launch_chips_aligner.sh"]
 tags = ["mcp", "chips", "timepix", "alignment", "offsets"]
+
+[[app]]
+name = "MCP Chips Correction Checker"
+description = "Validate the chips correction on a run: apply the config.py offsets to the autoreduced stack, compare original vs corrected ROI profiles (and normalized by an open-beam run), fill the inter-chip gaps, exclude bad chip-edge pixels, export the corrected stack."
+category = "restricted"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_chips_correction_checker/launch_chips_correction_checker.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_correction_pixel_checker_preview.png"
+tags = ["mcp", "chips", "timepix", "correction", "check", "profile", "normalization", "gaps", "export"]
 
 [[app]]
 name = "MCP Signal Evolution"
@@ -514,15 +547,25 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_signal_evolutio
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/mcp_signal_evolution_preview.png"
 tags = ["mcp", "timepix", "detector", "monitor", "evolution", "health", "pixels", "database"]
 
+[[app]]
+name = "Marimo Notebooks (beta)"
+description = "Development version of the marimo notebooks — opens the marimo editor on the marimo_notebooks_development checkout."
+category = "restricted"
+command = ["/SNS/VENUS/shared/software/git/marimo_notebooks_development/.pixi/envs/default/bin/marimo", "edit", "/SNS/VENUS/shared/software/git/marimo_notebooks_development/notebooks"]
+workdir = "/SNS/VENUS/shared/software/git/marimo_notebooks_development"
+in_terminal = true
+tags = ["marimo", "beta", "development", "notebooks"]
+
 # ---- Web links ----
 
-[[app]]
-name = "EIC Utils"
-description = "EIC utilities web page on dasdev1.sns.gov."
-category = "restricted"
-section = "Web links"
-url = "https://dasdev1.sns.gov/eic-utils"
-tags = ["web", "link", "eic", "das", "admin"]
+# Deactivated for now (2026-09-01) — EIC utils not usable at the moment.
+# [[app]]
+# name = "EIC Utils"
+# description = "EIC utilities web page on dasdev1.sns.gov."
+# category = "restricted"
+# section = "Web links"
+# url = "https://dasdev1.sns.gov/eic-utils"
+# tags = ["web", "link", "eic", "das", "admin"]
 
 # --------------------------------------------------------------------------
 # System tools
