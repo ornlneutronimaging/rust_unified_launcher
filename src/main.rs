@@ -21,6 +21,7 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::os::unix::process::CommandExt;
 use std::process::{Child, Command, Stdio};
+use std::sync::mpsc;
 
 const DEFAULT_CONFIG: &str =
     "/SNS/VENUS/shared/software/git/rust_unified_launcher/applications.toml";
@@ -33,6 +34,14 @@ const LAUNCH_COOLDOWN: f64 = 5.0;
 /// Seconds after a launch during which a non-zero exit is reported as a
 /// failure in the status bar (later exits are reaped silently).
 const FAILURE_WINDOW: f64 = 15.0;
+/// Script listing this user's Firefox/Chrome/Jupyter processes across the
+/// shared analysis machines. The browser profile lives on shared NFS/GPFS
+/// storage, so a browser running on ANY analysis node locks it and makes new
+/// launches on this machine fail with "already running". Run (list mode only —
+/// remote kills are unreliable) when a browser launch fails, to show WHERE the
+/// other browser is running.
+const BROWSER_SCAN_SCRIPT: &str =
+    "/SNS/VENUS/shared/software/bin/list_and_fix_running_browser.sh";
 /// Seconds between checks of the config file's mtime (auto-reload).
 const CONFIG_CHECK_PERIOD: f64 = 1.0;
 /// Seconds between re-checks of every app's `check_path` availability.
@@ -236,6 +245,26 @@ impl AppEntry {
             .map_err(|e| format!("Cannot launch {}: {e}", argv[0]))
     }
 
+    /// Heuristic: does launching this app open (or depend on) a web browser?
+    /// Decides whether a fast failure is worth a cross-machine browser scan
+    /// (see `BROWSER_SCAN_SCRIPT`).
+    fn involves_browser(&self) -> bool {
+        if self.url.is_some() {
+            return true;
+        }
+        let needles = [
+            "firefox", "chrome", "chromium", "browser", "jupyter", "marimo",
+            "portal", "website", "web",
+        ];
+        self.command
+            .iter()
+            .chain(self.tags.iter())
+            .any(|s| {
+                let s = s.to_lowercase();
+                needles.iter().any(|n| s.contains(n))
+            })
+    }
+
     /// Every whitespace-separated token of the needle must match the name,
     /// description or a tag — so "ct recon" finds "CT Reconstruction" no
     /// matter how the words are split across the fields.
@@ -267,6 +296,18 @@ fn validate_config(cfg: &Config) -> Vec<String> {
             )
         })
         .collect()
+}
+
+/// Does a captured launch log look like a "browser already running / profile
+/// locked" failure? Catches apps not flagged by `involves_browser` whose
+/// output still names the lock.
+fn log_mentions_browser_lock(log: &Option<PathBuf>) -> bool {
+    let Some(path) = log else { return false };
+    let Ok(text) = std::fs::read_to_string(path) else { return false };
+    let text = text.to_lowercase();
+    ["already running", "is in use", "singleton", "parentlock", "profile directory"]
+        .iter()
+        .any(|n| text.contains(n))
 }
 
 /// Single-quote a string for safe interpolation into a `bash -c` command.
@@ -431,6 +472,28 @@ struct PendingLaunch {
     child: Child,
     started: f64,
     log: Option<PathBuf>,
+    /// Launching this app opens a browser — a fast failure triggers the
+    /// cross-machine "where is my browser already running?" scan.
+    browserish: bool,
+}
+
+/// A background run of `BROWSER_SCAN_SCRIPT` (SSH to every analysis machine,
+/// so it takes several seconds); its report pops up in a window when it finds
+/// the user's browser/Jupyter running somewhere.
+struct BrowserScan {
+    /// App whose failed launch triggered the scan.
+    app_name: String,
+    rx: mpsc::Receiver<String>,
+    /// The script's report; `None` while the scan is still running.
+    output: Option<String>,
+    show_window: bool,
+}
+
+/// The scan report lists offending hosts as "[host] N process(es):" blocks.
+fn scan_found_processes(report: &str) -> bool {
+    report
+        .lines()
+        .any(|l| l.trim_start().starts_with('[') && l.contains("process(es):"))
 }
 
 struct App {
@@ -469,6 +532,8 @@ struct App {
     focus_password: bool,
     /// Children being watched / reaped.
     pending: Vec<PendingLaunch>,
+    /// Running or finished "browser already running elsewhere" scan.
+    browser_scan: Option<BrowserScan>,
     /// Egui times of the last config-mtime / availability checks.
     last_config_check: f64,
     last_availability_check: f64,
@@ -498,6 +563,7 @@ impl App {
             password_wrong: false,
             focus_password: false,
             pending: Vec::new(),
+            browser_scan: None,
             last_config_check: 0.0,
             last_availability_check: 0.0,
         };
@@ -548,8 +614,10 @@ impl App {
     }
 
     /// Watch children: report a fast non-zero exit, silently reap the rest.
+    /// A fast browser-related failure additionally starts the cross-machine
+    /// scan showing where the already-running browser lives.
     fn poll_pending(&mut self, now: f64) {
-        let status = &mut self.status;
+        let mut failure: Option<(String, String, Option<PathBuf>, bool)> = None;
         self.pending.retain_mut(|p| match p.child.try_wait() {
             Ok(Some(exit)) => {
                 if !exit.success() && now - p.started < FAILURE_WINDOW {
@@ -557,20 +625,101 @@ impl App {
                         .code()
                         .map(|c| c.to_string())
                         .unwrap_or_else(|| "killed by signal".to_owned());
-                    *status = Some(Err(match &p.log {
-                        Some(log) => format!(
-                            "{} exited (code {code}) — see {}",
-                            p.name,
-                            log.display()
-                        ),
-                        None => format!("{} exited (code {code})", p.name),
-                    }));
+                    failure =
+                        Some((p.name.clone(), code, p.log.clone(), p.browserish));
                 }
                 false
             }
             Ok(None) => true,
             Err(_) => false,
         });
+        let Some((name, code, log, browserish)) = failure else { return };
+        let mut msg = match &log {
+            Some(log) => {
+                format!("{name} exited (code {code}) — see {}", log.display())
+            }
+            None => format!("{name} exited (code {code})"),
+        };
+        if (browserish || log_mentions_browser_lock(&log))
+            && self.start_browser_scan(&name)
+        {
+            msg.push_str(
+                " — scanning the analysis machines for an already-running browser…",
+            );
+        }
+        self.status = Some(Err(msg));
+    }
+
+    /// Start `BROWSER_SCAN_SCRIPT` (list mode) in a background thread.
+    /// Returns whether a scan was actually started (the script may be missing,
+    /// or a scan may already be running).
+    fn start_browser_scan(&mut self, app_name: &str) -> bool {
+        if self
+            .browser_scan
+            .as_ref()
+            .map(|s| s.output.is_none())
+            .unwrap_or(false)
+        {
+            return false; // one scan at a time
+        }
+        if !Path::new(BROWSER_SCAN_SCRIPT).is_file() {
+            return false;
+        }
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            let report = match Command::new("/bin/bash")
+                .arg(BROWSER_SCAN_SCRIPT)
+                .arg("list")
+                .output()
+            {
+                Ok(out) => {
+                    let stdout = String::from_utf8_lossy(&out.stdout);
+                    if stdout.trim().is_empty() {
+                        String::from_utf8_lossy(&out.stderr).into_owned()
+                    } else {
+                        // Drop the script's closing "Re-run with 'kill'" hint:
+                        // the window advises closing the browser on the listed
+                        // machine instead (remote kills are unreliable).
+                        match stdout.find("Re-run with 'kill'") {
+                            Some(pos) => stdout[..pos].trim_end().to_owned(),
+                            None => stdout.into_owned(),
+                        }
+                    }
+                }
+                Err(e) => format!("Could not run the scan script: {e}"),
+            };
+            let _ = tx.send(report);
+        });
+        self.browser_scan = Some(BrowserScan {
+            app_name: app_name.to_owned(),
+            rx,
+            output: None,
+            show_window: false,
+        });
+        true
+    }
+
+    /// Collect a finished scan's report; pop the window when it found the
+    /// user's browser running somewhere.
+    fn poll_browser_scan(&mut self) {
+        let Some(scan) = &mut self.browser_scan else { return };
+        if scan.output.is_some() {
+            return;
+        }
+        let Ok(report) = scan.rx.try_recv() else { return };
+        if scan_found_processes(&report) {
+            scan.show_window = true;
+            self.status = Some(Err(format!(
+                "{}: your browser is already running on another machine",
+                scan.app_name
+            )));
+        } else {
+            self.status = Some(Ok(
+                "No already-running Firefox/Chrome/Jupyter found on the analysis machines"
+                    .to_owned(),
+            ));
+        }
+        scan.output = Some(report);
     }
 }
 
@@ -679,6 +828,7 @@ impl eframe::App for App {
 
         // ------------------------------------------- background housekeeping
         self.poll_pending(now);
+        self.poll_browser_scan();
         if now - self.last_config_check >= CONFIG_CHECK_PERIOD {
             self.last_config_check = now;
             if config_mtime(&self.config_path) != self.config_mtime {
@@ -1318,6 +1468,7 @@ impl eframe::App for App {
                             child,
                             started: now,
                             log,
+                            browserish: app.involves_browser(),
                         });
                         let entry = self
                             .recent
@@ -1333,9 +1484,56 @@ impl eframe::App for App {
             }
         }
 
-        // 1 Hz keeps the config watcher, availability re-check and child
-        // reaping running without mouse movement; a faster cadence while a
-        // cooldown or watched launch is active.
+        // ------------------------- browser-running-elsewhere scan report ---
+        if let Some(scan) = &mut self.browser_scan {
+            if scan.show_window {
+                let mut open = true;
+                egui::Window::new("Browser already running elsewhere")
+                    .open(&mut open)
+                    .collapsible(false)
+                    .resizable(true)
+                    .default_size([680.0, 440.0])
+                    .show(ctx, |ui| {
+                        ui.label(format!(
+                            "{} could not open the browser: your Firefox/Chrome \
+                             profile is on shared storage and is locked by a \
+                             session on the machine(s) listed below.",
+                            scan.app_name
+                        ));
+                        ui.add_space(4.0);
+                        ui.label(
+                            egui::RichText::new(
+                                "Log into that machine and close the browser \
+                                 (and any Jupyter) there, then launch again. \
+                                 Remote kills are unreliable — closing it on \
+                                 the machine itself is what works.",
+                            )
+                            .color(theme::text_emphasis(ui.visuals())),
+                        );
+                        ui.add_space(8.0);
+                        ui.separator();
+                        egui::ScrollArea::both()
+                            .id_salt("browser_scan_scroll")
+                            .auto_shrink([false, false])
+                            .show(ui, |ui| {
+                                ui.label(
+                                    egui::RichText::new(
+                                        scan.output.as_deref().unwrap_or(""),
+                                    )
+                                    .monospace()
+                                    .small(),
+                                );
+                            });
+                    });
+                if !open {
+                    scan.show_window = false;
+                }
+            }
+        }
+
+        // 1 Hz keeps the config watcher, availability re-check, child reaping
+        // and browser-scan polling running without mouse movement; a faster
+        // cadence while a cooldown or watched launch is active.
         ctx.request_repaint_after(std::time::Duration::from_secs(1));
         if !self.pending.is_empty()
             || self.last_launch.values().any(|t| now - t < LAUNCH_COOLDOWN)
