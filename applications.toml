@@ -88,7 +88,7 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tiff_vi
 tags = ["images", "viewer"]
 
 [[app]]
-name = "TOF Profile Viewer"
+name = "TOF Profile Viewer and Bin Maker"
 description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF profiles."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_rebin_viewer/launch_tof_profile_rebin_viewer.sh"]
@@ -430,7 +430,7 @@ tags = ["workflow", "pipeline", "normalization", "crop", "dehydration", "neunorm
 # ---- Visualization ----
 
 [[app]]
-name = "TOF Profile Viewer"
+name = "TOF Profile Viewer and Bin Maker"
 description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF profiles."
 category = "venus"
 section = "Visualization"
