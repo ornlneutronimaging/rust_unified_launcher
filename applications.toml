@@ -150,6 +150,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/h5_to_t
 tags = ["tomography", "hdf5", "tiff", "export", "normalized"]
 
 [[app]]
+name = "Sinogram Viewer"
+description = "Quick look at the sinograms of a CT projection stack (ct_reconstruction h5): pick any row, band average, percentile window, color scales — to judge ring-artifact and stripe removal."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_sinogram_viewer/launch_sinogram_viewer.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_sinogram_viewer_preview.png"
+tags = ["tomography", "sinogram", "hdf5", "ring artifact", "stripes", "viewer"]
+
+[[app]]
 name = "Volume 3D Viewer"
 description = "Explore reconstructed CT volumes (TIFF slices or multi-page TIFF) as orthogonal slices or GPU-rendered 3-D volume."
 category = "rust"
