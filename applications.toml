@@ -533,6 +533,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_au
 tags = ["autoreduction", "check", "verify", "timepix", "mcp", "raw", "compare", "profile", "log"]
 
 [[app]]
+name = "VENUS IPTS Report"
+description = "Full report of an IPTS: every run per detector with date/time, duration, proton charge, sample, starting neutron bandwidth (from the run-level file name) and the open beam / dark current runs that pair with it. HTML and CSV export."
+category = "restricted"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ipts_report/launch_ipts_report.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ipts_report_preview.png"
+tags = ["ipts", "report", "runs", "open beam", "dark current", "proton charge", "bandwidth", "nexus", "html", "csv"]
+
+[[app]]
 name = "MCP Chips Aligner"
 description = "Load an uncorrected Timepix TIFF, interactively align the four MCP chips and export the offsets as a config.py snippet."
 category = "restricted"
