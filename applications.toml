@@ -88,6 +88,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tiff_vi
 tags = ["images", "viewer"]
 
 [[app]]
+name = "McStas Output Viewer"
+description = "Display McStas / McCode monitor files (PSD images and 1-D spectra) with axes in physical units, colormap, contrast range, colorbar, histogram, line profile and TIFF export."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcstas_output_viewer/launch_rust_mcstas_output_viewer.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_mcstas_output_viewer_preview.png"
+tags = ["mcstas", "mccode", "simulation", "monitor", "psd", "viewer", "colormap", "histogram", "profile", "tiff"]
+
+[[app]]
 name = "TOF Profile Viewer and Bin Maker"
 description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF profiles."
 category = "rust"
