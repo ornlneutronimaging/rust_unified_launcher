@@ -29,6 +29,13 @@ by a config file instead of hardcoded entries.
   session. Passwords live in plain text in the config, so this is a soft
   gate against casual browsing, not a security boundary.
 
+- A top-level `usage_db = "/dir"` records every successful launch as one
+  JSON line in `<usage_db>/records/<user>.jsonl` (epoch, local time, user,
+  full name, application, category, host, command/url). Best effort on a background
+  thread; the **Portal Usage Monitor** (`portal_usage_monitor`, restricted
+  category) merges those files and shows the log and per-application bar
+  chart. Remove the key to stop recording.
+
 ## Adding / editing an application
 
 Edit `applications.toml`, then press **Reload config** in the running

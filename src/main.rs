@@ -63,6 +63,11 @@ struct Config {
     categories: Vec<Category>,
     #[serde(default, rename = "app")]
     apps: Vec<AppEntry>,
+    /// Directory of the shared usage database. Every successful launch
+    /// appends one JSON line to `<usage_db>/records/<user>.jsonl` (user, local
+    /// date/time, application, category, host). Omit to disable recording.
+    #[serde(default)]
+    usage_db: Option<String>,
 }
 
 fn default_title() -> String {
@@ -420,6 +425,200 @@ fn save_recent(recent: &RecentFile) {
     }
     if let Ok(text) = toml::to_string(recent) {
         let _ = std::fs::write(path, text);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Shared usage database (`usage_db` in the config): one JSON line per launch
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+struct UsageRecord {
+    /// Seconds since the Unix epoch (UTC).
+    epoch: u64,
+    /// Same instant as local ISO 8601 with UTC offset, e.g.
+    /// `2026-09-09T13:42:07-04:00`.
+    ts: String,
+    user: String,
+    /// Full name from the account database (GECOS field), empty if unknown.
+    name: String,
+    app: String,
+    category: String,
+    host: String,
+    /// `command` or `url`.
+    kind: &'static str,
+}
+
+fn current_user() -> String {
+    ["USER", "LOGNAME"]
+        .iter()
+        .find_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty()))
+        .unwrap_or_else(|| format!("uid{}", unsafe { libc::getuid() }))
+}
+
+/// Turn a GECOS field into a display name. Classic GECOS is
+/// `Full Name,room,phone,...` (first part); this site stores `Last, First`
+/// instead, which is recognised (one comma, no digits) and reordered to
+/// `First Last`.
+fn gecos_display_name(gecos: &str) -> String {
+    let parts: Vec<&str> = gecos.split(',').map(str::trim).collect();
+    match parts.as_slice() {
+        [last, first] if !first.is_empty() && !gecos.chars().any(|c| c.is_ascii_digit()) => {
+            format!("{first} {last}")
+        }
+        [first, ..] => (*first).to_owned(),
+        [] => String::new(),
+    }
+}
+
+/// Full name of the current user from the passwd database (GECOS field),
+/// empty when unavailable.
+fn current_full_name() -> String {
+    let mut buf = vec![0u8; 16 * 1024];
+    let mut pwd: libc::passwd = unsafe { std::mem::zeroed() };
+    let mut result: *mut libc::passwd = std::ptr::null_mut();
+    let rc = unsafe {
+        libc::getpwuid_r(
+            libc::getuid(),
+            &mut pwd,
+            buf.as_mut_ptr() as *mut libc::c_char,
+            buf.len(),
+            &mut result,
+        )
+    };
+    if rc != 0 || result.is_null() || pwd.pw_gecos.is_null() {
+        return String::new();
+    }
+    let gecos = unsafe { std::ffi::CStr::from_ptr(pwd.pw_gecos) };
+    gecos_display_name(&gecos.to_string_lossy())
+}
+
+fn current_host() -> String {
+    std::fs::read_to_string("/proc/sys/kernel/hostname")
+        .ok()
+        .map(|h| h.trim().to_owned())
+        .filter(|h| !h.is_empty())
+        .or_else(|| std::env::var("HOSTNAME").ok())
+        .unwrap_or_else(|| "unknown".to_owned())
+}
+
+/// Local ISO 8601 timestamp with UTC offset for the given epoch.
+fn local_iso_timestamp(epoch: u64) -> String {
+    let t = epoch as libc::time_t;
+    let mut tm: libc::tm = unsafe { std::mem::zeroed() };
+    unsafe {
+        libc::localtime_r(&t, &mut tm);
+    }
+    let sign = if tm.tm_gmtoff < 0 { '-' } else { '+' };
+    let off = tm.tm_gmtoff.abs();
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}{}{:02}:{:02}",
+        tm.tm_year + 1900,
+        tm.tm_mon + 1,
+        tm.tm_mday,
+        tm.tm_hour,
+        tm.tm_min,
+        tm.tm_sec,
+        sign,
+        off / 3600,
+        (off % 3600) / 60
+    )
+}
+
+/// Append one launch record to `<usage_db>/records/<user>.jsonl`. One file
+/// per user (in a sticky, world-writable directory) so concurrent launches
+/// from different users and machines never write to the same file. Best
+/// effort: any failure is silently ignored, a launch must never depend on
+/// the shared filesystem being writable. Runs on its own thread so a slow
+/// filesystem cannot stall the UI.
+fn record_usage(
+    usage_db: PathBuf,
+    app_name: String,
+    category: String,
+    is_url: bool,
+) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let epoch = epoch_now();
+        let user = current_user();
+        let record = UsageRecord {
+            epoch,
+            ts: local_iso_timestamp(epoch),
+            user: user.clone(),
+            name: current_full_name(),
+            app: app_name,
+            category,
+            host: current_host(),
+            kind: if is_url { "url" } else { "command" },
+        };
+        let Ok(line) = serde_json::to_string(&record) else { return };
+        let dir = usage_db.join("records");
+        let _ = std::fs::create_dir_all(&dir);
+        let safe_user: String = user
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '.' { c } else { '_' })
+            .collect();
+        let path = dir.join(format!("{safe_user}.jsonl"));
+        let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        else {
+            return;
+        };
+        // The dashboard is built by another user: keep the file readable
+        // whatever this user's umask is.
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644));
+        let _ = writeln!(file, "{line}");
+    })
+}
+
+#[cfg(test)]
+mod usage_tests {
+    use super::*;
+
+    #[test]
+    fn gecos_display_name_handles_site_and_classic_forms() {
+        assert_eq!(gecos_display_name("Bilheux, Jean-Christophe"), "Jean-Christophe Bilheux");
+        assert_eq!(gecos_display_name("Jane Doe,Room 12,555-1234,"), "Jane Doe");
+        assert_eq!(gecos_display_name("Jane Doe"), "Jane Doe");
+        assert_eq!(gecos_display_name(""), "");
+        assert_eq!(gecos_display_name("Doe,"), "Doe");
+    }
+
+    #[test]
+    fn record_usage_appends_one_json_line_per_launch() {
+        let dir = std::env::temp_dir().join(format!(
+            "unified_launcher_usage_test_{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        record_usage(dir.clone(), "App One".into(), "rust".into(), false)
+            .join()
+            .unwrap();
+        record_usage(dir.clone(), "Web \"Link\"".into(), "web".into(), true)
+            .join()
+            .unwrap();
+        let path = dir.join("records").join(format!("{}.jsonl", current_user()));
+        let text = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = text.lines().collect();
+        assert_eq!(lines.len(), 2);
+        let first: serde_json::Value = serde_json::from_str(lines[0]).unwrap();
+        assert_eq!(first["app"], "App One");
+        assert_eq!(first["category"], "rust");
+        assert_eq!(first["kind"], "command");
+        assert_eq!(first["user"], current_user());
+        assert!(first["name"].is_string());
+        println!("full name recorded as: {:?}", first["name"]);
+        assert_eq!(first["host"], current_host());
+        assert!(first["epoch"].as_u64().unwrap() > 1_700_000_000);
+        let ts = first["ts"].as_str().unwrap();
+        assert_eq!(ts.len(), 25, "{ts}");
+        assert_eq!(&ts[10..11], "T");
+        let second: serde_json::Value = serde_json::from_str(lines[1]).unwrap();
+        assert_eq!(second["app"], "Web \"Link\"");
+        assert_eq!(second["kind"], "url");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
 
@@ -1478,6 +1677,14 @@ impl eframe::App for App {
                         entry.count += 1;
                         entry.last_epoch = epoch_now();
                         save_recent(&self.recent);
+                        if let Some(db) = &cfg.usage_db {
+                            let _ = record_usage(
+                                PathBuf::from(db),
+                                app.name.clone(),
+                                app.category.clone(),
+                                app.url.is_some(),
+                            );
+                        }
                     }
                     Err(e) => self.status = Some(Err(e)),
                 }
