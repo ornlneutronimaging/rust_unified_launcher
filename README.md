@@ -9,7 +9,8 @@ by a config file instead of hardcoded entries.
 
 - `applications.toml` (in this repo) lists every application: name,
   description, category, argv command, optional preview screenshot, optional
-  flags (`in_terminal`, `clear_fontconfig`, `check_path`, `workdir`, `tags`).
+  flags (`in_terminal`, `clear_fontconfig`, `requires_browser`, `check_path`,
+  `workdir`, `tags`).
 - The launcher renders them grouped by category with a search box, a preview
   panel, availability checks (missing targets are grayed out with the reason
   on hover), and a 5-second per-app launch cooldown.
@@ -22,6 +23,20 @@ by a config file instead of hardcoded entries.
 - `in_terminal = true` wraps the command in gnome-terminal / konsole /
   xfce4-terminal / xterm (first found on PATH) so pixi/conda setup output
   stays visible; if none exists, the app is launched directly.
+- `requires_browser = true` marks a tool that opens (or runs inside) a web
+  browser: Jupyter / marimo portals, the web applications, dashboards. The
+  Firefox profile lives on shared storage, so a browser running on any other
+  analysis machine locks it and the launch fails with "Firefox is already
+  running". For such tools the launcher reads the profile's `lock` symlink
+  before launching and, when it names another machine, holds the launch back
+  and pops a window with **🔧 Fix browser issue** (runs
+  `list_and_fix_running_browser.sh kill` — kills your Firefox / Chrome /
+  Jupyter on every analysis machine and resets the profile — then shows the
+  report) and **Launch anyway**. The same button sits in the preview panel of
+  every browser tool, and in the report window shown after a browser launch
+  fails. When the flag is unset the launcher guesses from the command / tags;
+  `requires_browser = false` turns the check off (used for the Fix tool
+  itself).
 - A `[[category]]` with `passwords = ["word1", "word2"]` shows as 🔒 in the
   sidebar and asks for one of those passwords (case-insensitive) before
   revealing its applications; until unlocked they are hidden from the All

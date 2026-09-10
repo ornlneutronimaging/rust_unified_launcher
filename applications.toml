@@ -26,6 +26,13 @@
 #                                            # ("Press Enter to close"), for
 #                                            # tools that print a report & quit
 #   clear_fontconfig = true                  # rm -rf ~/.cache/fontconfig first
+#   requires_browser = true                  # tool opens a web browser: the
+#                                            # Firefox profile lock is checked
+#                                            # before launching (Fix browser
+#                                            # issue / Launch anyway) and the
+#                                            # preview panel shows the fix
+#                                            # button. Unset: guessed from the
+#                                            # command/tags; false: never
 #   tags        = ["extra", "search", "words"]
 #
 # A [[category]] may declare passwords:
@@ -263,6 +270,7 @@ category = "jupyter"
 command = ["/SNS/VENUS/shared/software/bin/rust_jupyter_notebooks_portal"]
 clear_fontconfig = true
 tags = ["ipts"]
+requires_browser = true
 
 [[app]]
 name = "Jupyter Portal (dedicated IPTS)"
@@ -271,6 +279,7 @@ category = "jupyter"
 command = ["/SNS/VENUS/shared/software/bin/rust_jupyter_portal_dedicated_ipts"]
 clear_fontconfig = true
 tags = ["ipts"]
+requires_browser = true
 
 [[app]]
 name = "Jupyter Data Reduction"
@@ -279,6 +288,7 @@ category = "jupyter"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/scripts/start_jupyter_data_reduction_pixi"]
 in_terminal = true
 clear_fontconfig = true
+requires_browser = true
 
 # --------------------------------------------------------------------------
 # Marimo notebooks
@@ -290,6 +300,7 @@ description = "Browse and launch the general-tools marimo notebooks."
 category = "marimo"
 command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal_general_tools"]
 clear_fontconfig = true
+requires_browser = true
 
 [[app]]
 name = "Marimo Portal (dedicated IPTS)"
@@ -298,6 +309,7 @@ category = "marimo"
 command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal"]
 clear_fontconfig = true
 tags = ["ipts"]
+requires_browser = true
 
 # --------------------------------------------------------------------------
 # Python & other applications
@@ -351,6 +363,7 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/bragg_edge_fitt
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_fitting_web_tool.png"
 tags = ["bragg edge", "fitting", "web", "santisteban"]
+requires_browser = true
 
 [[app]]
 name = "iBeatles Web"
@@ -360,6 +373,7 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/iBEAMS/launch_i
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/ibeams.png"
 tags = ["bragg edge", "strain", "fitting", "web", "ibeams", "ibeatles"]
+requires_browser = true
 
 [[app]]
 name = "Strain Contour Mapper"
@@ -368,6 +382,7 @@ category = "web"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/strain_contour_mapper/launch_website.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_mapping_web_tool.png"
 tags = ["strain", "contour", "heatmap", "ibeatles", "web"]
+requires_browser = true
 
 [[app]]
 name = "VENUS Segmentation Tool"
@@ -377,6 +392,7 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/venus_image_seg
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/class_mask_web_tool.png"
 tags = ["segmentation", "mask", "labeling", "training", "web"]
+requires_browser = true
 
 [[app]]
 name = "iNEUIT (local)"
@@ -385,6 +401,7 @@ category = "web"
 command = ["/SNS/VENUS/shared/software/git/neuit/webapp/neuit"]
 in_terminal = true
 tags = ["neuit", "ineuit", "composition", "tof", "periodic table", "xrd", "bragg", "web"]
+requires_browser = true
 
 # --------------------------------------------------------------------------
 # VENUS
@@ -412,6 +429,7 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/iBEAMS/launch_i
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/ibeams.png"
 tags = ["bragg edge", "strain", "fitting", "web", "ibeams", "ibeatles"]
+requires_browser = true
 
 [[app]]
 name = "Bragg-Edge Fitting Website"
@@ -422,6 +440,7 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/bragg_edge_fitt
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_fitting_web_tool.png"
 tags = ["bragg edge", "fitting", "web", "santisteban"]
+requires_browser = true
 
 # ---- Normalization ----
 
@@ -470,6 +489,7 @@ section = "Visualization"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/strain_contour_mapper/launch_website.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_mapping_web_tool.png"
 tags = ["strain", "contour", "heatmap", "ibeatles", "web"]
+requires_browser = true
 
 # ---- General tools ----
 
@@ -515,6 +535,7 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/venus_image_seg
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/class_mask_web_tool.png"
 tags = ["segmentation", "mask", "labeling", "training", "web"]
+requires_browser = true
 
 # --------------------------------------------------------------------------
 # MARS
@@ -586,6 +607,7 @@ category = "restricted"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/portal_usage_monitor/launch_usage_monitor.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/portal_usage_monitor_preview.png"
 tags = ["usage", "statistics", "monitor", "database", "log", "launches", "web", "browser", "dashboard"]
+requires_browser = true
 
 [[app]]
 name = "Marimo Notebooks (beta)"
@@ -595,6 +617,7 @@ command = ["/SNS/VENUS/shared/software/git/marimo_notebooks_development/.pixi/en
 workdir = "/SNS/VENUS/shared/software/git/marimo_notebooks_development"
 in_terminal = true
 tags = ["marimo", "beta", "development", "notebooks"]
+requires_browser = true
 
 # ---- Web links ----
 
@@ -619,6 +642,7 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/launch_system_report.sh"
 in_terminal = true
 hold_terminal = true
 tags = ["report", "dashboard", "monitoring"]
+requires_browser = true
 
 [[app]]
 name = "Who Is Connected (this machine)"
@@ -665,6 +689,7 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/list_and_fix_running_bro
 in_terminal = true
 hold_terminal = true
 tags = ["firefox", "locked profile", "kill"]
+requires_browser = false
 
 [[app]]
 name = "System Monitor (btop)"
