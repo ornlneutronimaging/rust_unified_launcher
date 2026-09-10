@@ -34,16 +34,19 @@ const LAUNCH_COOLDOWN: f64 = 5.0;
 /// Seconds after a launch during which a non-zero exit is reported as a
 /// failure in the status bar (later exits are reaped silently).
 const FAILURE_WINDOW: f64 = 15.0;
-/// Script listing (and killing) this user's Firefox/Chrome/Jupyter processes
-/// across the shared analysis machines. The browser profile lives on shared
-/// NFS/GPFS storage, so a browser running on ANY analysis node locks it and
-/// makes new launches on this machine fail with "already running". Run in
-/// `list` mode when a browser launch fails, to show WHERE the other browser is
-/// running, and in `kill` mode behind the "Fix browser issue" button (same
-/// button as the Jupyter / marimo portals). Both modes work over passwordless
-/// SSH, which the script sets up itself for users who have no SSH key yet.
+/// Script listing this user's Firefox/Chrome/Jupyter processes across the
+/// shared analysis machines. The browser profile lives on shared NFS/GPFS
+/// storage, so a browser running on ANY analysis node locks it and makes new
+/// launches on this machine fail with "already running". Run in `list` mode
+/// when a browser launch fails, to show WHERE the other browser is running.
+/// It works over passwordless SSH, which the script sets up itself for users
+/// who have no SSH key yet. (The "Fix browser issue" button no longer uses
+/// the script's `kill` mode: it just resets the profile, see
+/// `reset_firefox_profile`.)
 const BROWSER_SCAN_SCRIPT: &str =
     "/SNS/VENUS/shared/software/bin/list_and_fix_running_browser.sh";
+/// Number of `~/.mozilla.bak-<timestamp>` backups kept by "Fix browser issue".
+const MOZILLA_BACKUPS_KEPT: usize = 3;
 /// Seconds between checks of the config file's mtime (auto-reload).
 const CONFIG_CHECK_PERIOD: f64 = 1.0;
 /// Seconds between re-checks of every app's `check_path` availability.
@@ -700,14 +703,12 @@ enum BrowserWindowKind {
     /// A fast browser-related failure: where the browser is already running
     /// (profile lock symlink, or the cross-machine scan's report).
     Scan,
-    /// Result of a "Fix browser issue" kill run.
-    Fix,
 }
 
 /// The pop-up window with a browser report and its action buttons.
 struct BrowserWindow {
     kind: BrowserWindowKind,
-    /// App whose launch triggered the window (empty for a manual fix).
+    /// App whose launch triggered the window.
     app_name: String,
     report: String,
     /// `LockedBeforeLaunch`: index of the held-back app, for "Launch anyway".
@@ -776,78 +777,145 @@ fn firefox_remote_lock_report() -> Option<String> {
         blocks.push(
             "If Firefox is NOT actually running there, the lock is stale:\n    \
              delete the 'lock' and '.parentlock' files in that profile folder\n    \
-             under ~/.mozilla/firefox/ (Fix browser issue does that too)."
+             under ~/.mozilla/firefox/ (or click Fix browser issue, which\n    \
+             moves the whole ~/.mozilla aside)."
                 .to_owned(),
         );
         Some(blocks.join("\n\n"))
     }
 }
 
-/// Summary of a `BROWSER_SCAN_SCRIPT kill` report, from its closing lines
-/// ("Found N process(es) on M host(s); K still running after kill." and
-/// "A host(s) clean, B unreachable ...").
-struct KillSummary {
-    found: usize,
-    hosts: usize,
-    remaining: usize,
-    clean: usize,
-    unreachable: usize,
-    auth_failed: bool,
+/// "Fix browser issue": move `~/.mozilla` aside so Firefox starts with a
+/// fresh profile. The profile sits on the shared home directory, so a Firefox
+/// left running on another analysis machine holds its lock and every launch
+/// here fails with "Firefox is already running". Renaming the directory (to
+/// `~/.mozilla.bak-<timestamp>`) unblocks this machine at once, without SSH
+/// access to the other hosts and without killing anything there: the remote
+/// Firefox keeps running on the renamed folder until it is closed. A rename
+/// also works while files inside are held open (an `rm -rf` on NFS would fail
+/// with "Device or resource busy"), and it keeps bookmarks and saved logins
+/// recoverable. Older backups made by this function are pruned down to
+/// `MOZILLA_BACKUPS_KEPT`. Returns the status-bar message.
+fn reset_firefox_profile() -> Result<String, String> {
+    let home = std::env::var("HOME").map_err(|_| "HOME is not set".to_owned())?;
+    let home = Path::new(&home);
+    let profile = home.join(".mozilla");
+    if std::fs::symlink_metadata(&profile).is_err() {
+        return Ok("No ~/.mozilla found: the Firefox profile is already fresh — \
+                   you can launch again"
+            .to_owned());
+    }
+    let stamp = local_timestamp();
+    let mut backup = home.join(format!(".mozilla.bak-{stamp}"));
+    let mut n = 1;
+    while std::fs::symlink_metadata(&backup).is_ok() {
+        backup = home.join(format!(".mozilla.bak-{stamp}-{n}"));
+        n += 1;
+    }
+    std::fs::rename(&profile, &backup)
+        .map_err(|e| format!("Could not move {} aside: {e}", profile.display()))?;
+    prune_mozilla_backups(home);
+    Ok(format!(
+        "Firefox profile reset (moved to {}) — you can launch again",
+        backup.display()
+    ))
 }
 
-fn parse_kill_summary(report: &str) -> KillSummary {
-    // Pull every integer out of a line, in order.
-    fn ints(line: &str) -> Vec<usize> {
-        line.split(|c: char| !c.is_ascii_digit())
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect()
+/// Keep only the newest `MOZILLA_BACKUPS_KEPT` of the `~/.mozilla.bak-*`
+/// folders created by `reset_firefox_profile` (the names sort by time).
+/// A plain `~/.mozilla.bak` made by hand is never touched.
+fn prune_mozilla_backups(home: &Path) {
+    let Ok(entries) = std::fs::read_dir(home) else { return };
+    let mut backups: Vec<PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with(".mozilla.bak-"))
+        })
+        .collect();
+    backups.sort();
+    for old in backups.iter().rev().skip(MOZILLA_BACKUPS_KEPT) {
+        let _ = std::fs::remove_dir_all(old);
     }
-    let mut s = KillSummary {
-        found: 0,
-        hosts: 0,
-        remaining: 0,
-        clean: 0,
-        unreachable: 0,
-        auth_failed: report.contains("Permission denied"),
-    };
-    for line in report.lines() {
-        let line = line.trim();
-        if line.starts_with("Found ") && line.contains("still running after kill") {
-            let n = ints(line);
-            s.found = n.first().copied().unwrap_or(0);
-            s.hosts = n.get(1).copied().unwrap_or(0);
-            s.remaining = n.get(2).copied().unwrap_or(0);
-        } else if line.contains("host(s) clean") && line.contains("unreachable") {
-            let n = ints(line);
-            s.clean = n.first().copied().unwrap_or(0);
-            s.unreachable = n.get(1).copied().unwrap_or(0);
+}
+
+/// Local time as `YYYYmmdd-HHMMSS` (via `date`, so the system time zone is
+/// honoured without a chrono dependency); UTC epoch seconds as a fallback.
+fn local_timestamp() -> String {
+    Command::new("date")
+        .arg("+%Y%m%d-%H%M%S")
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
+        .filter(|t| t.len() == 15)
+        .unwrap_or_else(|| epoch_now().to_string())
+}
+
+#[cfg(test)]
+mod profile_reset_tests {
+    use super::*;
+
+    #[test]
+    fn prune_keeps_newest_backups_and_hand_made_one() {
+        let home = std::env::temp_dir().join(format!("launcher_prune_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&home);
+        for name in [
+            ".mozilla.bak",
+            ".mozilla.bak-20260901-120000",
+            ".mozilla.bak-20260902-120000",
+            ".mozilla.bak-20260903-120000",
+            ".mozilla.bak-20260904-120000",
+            ".mozilla.bak-20260905-120000",
+        ] {
+            std::fs::create_dir_all(home.join(name).join("firefox")).unwrap();
         }
+        prune_mozilla_backups(&home);
+        let mut left: Vec<String> = std::fs::read_dir(&home)
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
+        left.sort();
+        assert_eq!(
+            left,
+            [
+                ".mozilla.bak",
+                ".mozilla.bak-20260903-120000",
+                ".mozilla.bak-20260904-120000",
+                ".mozilla.bak-20260905-120000",
+            ]
+        );
+        let _ = std::fs::remove_dir_all(&home);
     }
-    s
+
+    #[test]
+    fn timestamp_is_sortable() {
+        let t = local_timestamp();
+        assert_eq!(t.len(), 15, "{t}");
+        assert_eq!(&t[8..9], "-");
+        assert!(t.chars().filter(|c| c.is_ascii_digit()).count() == 14);
+    }
 }
 
 /// The purple "🔧 Fix browser issue" button shared by the preview panel and
 /// the report windows (same look as in the Jupyter / marimo portals).
-/// Disabled while a fix run is in progress. Returns whether it was clicked.
-fn fix_browser_button(ui: &mut egui::Ui, running: bool) -> bool {
-    let label = if running {
-        "\u{1F527} Fixing\u{2026}"
-    } else {
-        "\u{1F527} Fix browser issue"
-    };
-    ui.add_enabled(
-        !running,
-        egui::Button::new(egui::RichText::new(label).color(theme::TEXT_WHITE))
-            .fill(egui::Color32::from_rgb(138, 43, 226))
-            .corner_radius(6.0)
-            .min_size(egui::vec2(150.0, 28.0)),
+/// Returns whether it was clicked.
+fn fix_browser_button(ui: &mut egui::Ui) -> bool {
+    ui.add(
+        egui::Button::new(
+            egui::RichText::new("\u{1F527} Fix browser issue").color(theme::TEXT_WHITE),
+        )
+        .fill(egui::Color32::from_rgb(138, 43, 226))
+        .corner_radius(6.0)
+        .min_size(egui::vec2(150.0, 28.0)),
     )
     .on_hover_text(
-        "Kill your Firefox / Chrome / Jupyter on every analysis machine and \
-         reset the Firefox profile, so the browser can open here again",
+        "Move your Firefox profile (~/.mozilla) aside so Firefox starts fresh \
+         here; the old profile is kept as ~/.mozilla.bak-<date>. Nothing is \
+         killed on the other machines.",
     )
-    .on_disabled_hover_text("Fix run in progress, please wait...")
     .clicked()
 }
 
@@ -890,8 +958,6 @@ struct App {
     /// Running cross-machine scan (app whose failure started it, report
     /// channel); see `BROWSER_SCAN_SCRIPT`.
     browser_scan: Option<(String, mpsc::Receiver<String>)>,
-    /// Running "Fix browser issue" kill run (report channel).
-    browser_fix: Option<mpsc::Receiver<String>>,
     /// The browser report window, when shown.
     browser_window: Option<BrowserWindow>,
     /// "Launch anyway" was clicked for this app: skip the profile-lock check
@@ -927,7 +993,6 @@ impl App {
             focus_password: false,
             pending: Vec::new(),
             browser_scan: None,
-            browser_fix: None,
             browser_window: None,
             launch_anyway: None,
             last_config_check: 0.0,
@@ -1100,96 +1165,15 @@ impl App {
         }
     }
 
-    /// "Fix browser issue": run `BROWSER_SCAN_SCRIPT kill -v` in a background
-    /// thread. It kills the user's Firefox / Chrome / Jupyter on every
-    /// analysis machine and removes ~/.mozilla (the locked profile). The
-    /// report is shown in the window once it finishes: users need to see
-    /// whether anything was actually killed, and on which machine — a
-    /// silent run that reached no host (no SSH key, hosts refusing the
-    /// login) looks exactly like success otherwise.
-    fn start_browser_fix(&mut self) {
-        if self.browser_fix.is_some() {
-            return; // one fix run at a time
+    /// "Fix browser issue": reset the Firefox profile (see
+    /// `reset_firefox_profile`), report in the status bar and close the
+    /// browser report window — its lock information is obsolete once the
+    /// profile has been moved aside, and the user just launches again.
+    fn fix_browser(&mut self) {
+        self.status = Some(reset_firefox_profile());
+        if self.status.as_ref().is_some_and(Result::is_ok) {
+            self.browser_window = None;
         }
-        if !Path::new(BROWSER_SCAN_SCRIPT).is_file() {
-            self.status = Some(Err(format!("Missing script {BROWSER_SCAN_SCRIPT}")));
-            return;
-        }
-        let (tx, rx) = mpsc::channel();
-        std::thread::spawn(move || {
-            let report = match Command::new("/bin/bash")
-                .arg(BROWSER_SCAN_SCRIPT)
-                .arg("kill")
-                .arg("-v")
-                .output()
-            {
-                Ok(out) => {
-                    let mut text = String::from_utf8_lossy(&out.stdout).into_owned();
-                    let err = String::from_utf8_lossy(&out.stderr);
-                    if !err.trim().is_empty() {
-                        text.push('\n');
-                        text.push_str(err.trim_end());
-                    }
-                    text
-                }
-                Err(e) => format!("Could not run {BROWSER_SCAN_SCRIPT}: {e}"),
-            };
-            let _ = tx.send(report);
-        });
-        self.browser_fix = Some(rx);
-        self.status = Some(Ok(
-            "Fixing: killing your stuck browser sessions on the analysis machines…"
-                .to_owned(),
-        ));
-    }
-
-    /// The fix run finished: summarise it in the status bar and show the
-    /// full report so the user sees what happened on which machine.
-    fn poll_browser_fix(&mut self) {
-        let Some(rx) = &self.browser_fix else { return };
-        let report = match rx.try_recv() {
-            Ok(report) => report,
-            Err(mpsc::TryRecvError::Empty) => return,
-            Err(mpsc::TryRecvError::Disconnected) => {
-                self.browser_fix = None;
-                return;
-            }
-        };
-        self.browser_fix = None;
-        let s = parse_kill_summary(&report);
-        self.status = Some(if s.auth_failed {
-            Err("Could not log into the analysis machines (SSH refused) — see the report window"
-                .to_owned())
-        } else if s.found == 0 && s.clean == 0 && s.unreachable > 0 {
-            Err("No analysis machine could be reached — see the report window".to_owned())
-        } else if s.found == 0 {
-            Ok("No browser or Jupyter of yours found running on the analysis machines \
-                (profile reset) — you can launch again"
-                .to_owned())
-        } else if s.remaining == 0 {
-            Ok(format!(
-                "Killed {} process(es) on {} machine(s) — you can launch again",
-                s.found, s.hosts
-            ))
-        } else {
-            Err(format!(
-                "{} process(es) still running after the kill — see the report window",
-                s.remaining
-            ))
-        });
-        // Keep the app the fix was started for (from a pre-launch window) so
-        // the user can just relaunch it; a manual fix names none.
-        let app_name = self
-            .browser_window
-            .as_ref()
-            .map(|w| w.app_name.clone())
-            .unwrap_or_default();
-        self.browser_window = Some(BrowserWindow {
-            kind: BrowserWindowKind::Fix,
-            app_name,
-            report,
-            blocked: None,
-        });
     }
 }
 
@@ -1299,7 +1283,6 @@ impl eframe::App for App {
         // ------------------------------------------- background housekeeping
         self.poll_pending(now);
         self.poll_browser_scan();
-        self.poll_browser_fix();
         if now - self.last_config_check >= CONFIG_CHECK_PERIOD {
             self.last_config_check = now;
             if config_mtime(&self.config_path) != self.config_mtime {
@@ -1696,7 +1679,7 @@ impl eframe::App for App {
                                 .color(theme::text_emphasis(ui.visuals())),
                             );
                             ui.add_space(4.0);
-                            if fix_browser_button(ui, self.browser_fix.is_some()) {
+                            if fix_browser_button(ui) {
                                 fix_clicked = true;
                             }
                         }
@@ -2035,11 +2018,12 @@ impl eframe::App for App {
                          session on the machine listed below — the browser \
                          would refuse to open on this machine."
                     ),
-                    "Click \u{1F527} Fix browser issue to close it from here \
-                     (kills your Firefox / Chrome / Jupyter on every analysis \
-                     machine and resets the Firefox profile), then launch \
-                     again. Or log into that machine and close the browser \
-                     there. Launch anyway skips this check.",
+                    "Click \u{1F527} Fix browser issue to reset the profile \
+                     (moves ~/.mozilla aside as ~/.mozilla.bak-<date>; Firefox \
+                     then starts fresh here, nothing is killed on the other \
+                     machine), then launch again. Or log into that machine \
+                     and close the browser there. Launch anyway skips this \
+                     check.",
                 ),
                 BrowserWindowKind::Scan => (
                     "Browser already running elsewhere",
@@ -2048,25 +2032,13 @@ impl eframe::App for App {
                          Firefox/Chrome profile is on shared storage and is \
                          locked by a session on the machine(s) listed below."
                     ),
-                    "Click \u{1F527} Fix browser issue to close it from here \
-                     (kills your Firefox / Chrome / Jupyter on every analysis \
-                     machine and resets the Firefox profile), then launch \
-                     again. Or log into that machine and close the browser \
-                     (and any Jupyter) there.",
-                ),
-                BrowserWindowKind::Fix => (
-                    "Fix browser issue — result",
-                    "Your Firefox / Chrome / Jupyter processes were looked \
-                     for on every analysis machine and killed where found, \
-                     and the Firefox profile was reset. Machines marked \
-                     \"unreachable\" could not be logged into, so nothing \
-                     was checked or killed there."
-                        .to_owned(),
-                    "If your browser still refuses to open after this, log \
-                     into the listed machine and close it there.",
+                    "Click \u{1F527} Fix browser issue to reset the profile \
+                     (moves ~/.mozilla aside as ~/.mozilla.bak-<date>; Firefox \
+                     then starts fresh here, nothing is killed on the other \
+                     machines), then launch again. Or log into that machine \
+                     and close the browser (and any Jupyter) there.",
                 ),
             };
-            let fix_running = self.browser_fix.is_some();
             let mut fix = false;
             let mut launch_anyway = false;
             egui::Window::new(title)
@@ -2085,9 +2057,7 @@ impl eframe::App for App {
                     );
                     ui.add_space(8.0);
                     ui.horizontal(|ui| {
-                        if kind != BrowserWindowKind::Fix
-                            && fix_browser_button(ui, fix_running)
-                        {
+                        if fix_browser_button(ui) {
                             fix = true;
                         }
                         if kind == BrowserWindowKind::LockedBeforeLaunch {
@@ -2151,7 +2121,7 @@ impl eframe::App for App {
             }
         }
         if fix_clicked {
-            self.start_browser_fix();
+            self.fix_browser();
         }
 
         // 1 Hz keeps the config watcher, availability re-check, child reaping
@@ -2159,7 +2129,6 @@ impl eframe::App for App {
         // cadence while a cooldown or watched launch is active.
         ctx.request_repaint_after(std::time::Duration::from_secs(1));
         if !self.pending.is_empty()
-            || self.browser_fix.is_some()
             || self.browser_scan.is_some()
             || self.last_launch.values().any(|t| now - t < LAUNCH_COOLDOWN)
         {

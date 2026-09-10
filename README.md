@@ -29,12 +29,14 @@ by a config file instead of hardcoded entries.
   analysis machine locks it and the launch fails with "Firefox is already
   running". For such tools the launcher reads the profile's `lock` symlink
   before launching and, when it names another machine, holds the launch back
-  and pops a window with **🔧 Fix browser issue** (runs
-  `list_and_fix_running_browser.sh kill` — kills your Firefox / Chrome /
-  Jupyter on every analysis machine and resets the profile — then shows the
-  report) and **Launch anyway**. The same button sits in the preview panel of
-  every browser tool, and in the report window shown after a browser launch
-  fails. When the flag is unset the launcher guesses from the command / tags;
+  and pops a window with **🔧 Fix browser issue** and **Launch anyway**. The
+  fix moves `~/.mozilla` aside as `~/.mozilla.bak-<date>` (the three newest
+  such backups are kept) so Firefox starts here with a fresh profile; nothing
+  is killed on the other machines, and no SSH access is needed. The same
+  button sits in the preview panel of every browser tool, and in the report
+  window shown after a browser launch fails (that report still comes from
+  `list_and_fix_running_browser.sh list`, which scans the analysis machines
+  over SSH). When the flag is unset the launcher guesses from the command / tags;
   `requires_browser = false` turns the check off (used for the Fix tool
   itself).
 - A `[[category]]` with `passwords = ["word1", "word2"]` shows as 🔒 in the
