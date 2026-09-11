@@ -262,6 +262,7 @@ name = "NeXus Viewer"
 description = "Browse the content of a NeXus/HDF5 file: tree view, values, plots and PV search."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_nexus_viewer/launch_nexus_viewer.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_nexus_viewer_preview.png"
 tags = ["nexus", "hdf5", "viewer"]
 
 [[app]]
