@@ -520,6 +520,7 @@ description = "Interactive GUI to create the shutter value file — live gap plo
 category = "venus"
 section = "General tools"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/make_shutter_value_file/rust_shutter_value/launch_shutter_value_maker.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_shutter_value_maker_preview.png"
 tags = ["venus", "shutter", "bragg", "timepix"]
 
 [[app]]
