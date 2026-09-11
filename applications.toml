@@ -145,6 +145,7 @@ name = "ROI Selector"
 description = "Select regions of interest on an imaging data set and export a mask file."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_roi_selector/launch_roi_selector.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_roi_selector_preview.png"
 tags = ["mask", "region"]
 
 [[app]]
@@ -222,6 +223,7 @@ name = "Auto Normalization Monitor at VENUS"
 description = "Monitor the state of the VENUS auto normalization pipeline."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autonormalization_monitor_preview.png"
 tags = ["normalization", "venus", "auto"]
 
 [[app]]
@@ -315,6 +317,7 @@ name = "Marimo Portal (general tools)"
 description = "Browse and launch the general-tools marimo notebooks."
 category = "marimo"
 command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal_general_tools"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/marimo_portal_general_tools_preview.png"
 clear_fontconfig = true
 requires_browser = true
 
@@ -466,6 +469,7 @@ description = "Monitor the state of the VENUS auto normalization pipeline."
 category = "venus"
 section = "Normalization"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autonormalization_monitor_preview.png"
 tags = ["normalization", "venus", "auto"]
 
 [[app]]
