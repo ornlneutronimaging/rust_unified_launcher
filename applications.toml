@@ -270,6 +270,7 @@ name = "Venus Beam Monitor"
 description = "Display the beam-monitor signal of VENUS NeXus event files (counts vs TOF and wavelength) and export the histogrammed data to CSV."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_venus_monitor/launch_venus_monitor.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_venus_monitor_preview.png"
 tags = ["monitor", "beam", "nexus", "tof", "wavelength", "csv"]
 
 [[app]]
