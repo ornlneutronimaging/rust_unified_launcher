@@ -354,6 +354,7 @@ name = "HyperCTui"
 description = "AI-automated CT loop (Rust hype_control application)."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/hype_scripts/rust/launch_hype_control.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_hyperctui_preview.png"
 tags = ["ai", "tomography"]
 
 [[app]]
@@ -544,6 +545,7 @@ description = "AI-automated CT loop (Rust hype_control application)."
 category = "venus"
 section = "General tools"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/hype_scripts/rust/launch_hype_control.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_hyperctui_preview.png"
 tags = ["ai", "tomography"]
 
 [[app]]
