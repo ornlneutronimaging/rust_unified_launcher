@@ -419,6 +419,7 @@ name = "iNEUIT (local)"
 description = "Client-side JavaScript port of the NEUIT tools: composition converter, TOF plotter, golden angles, XRD to Bragg peaks, periodic table."
 category = "web"
 command = ["/SNS/VENUS/shared/software/git/neuit/webapp/neuit"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/ineuit_local_preview.png"
 in_terminal = true
 tags = ["neuit", "ineuit", "composition", "tof", "periodic table", "xrd", "bragg", "web"]
 requires_browser = true
