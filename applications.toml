@@ -255,6 +255,7 @@ name = "NRAD Spot Cleaner"
 description = "Remove spots and hot pixels from radiographs with the NRAD algorithms."
 category = "rust"
 command = ["/SNS/VENUS/shared/software/bin/nrad-gui"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/nrad_spot_cleaner_preview.png"
 
 [[app]]
 name = "NeXus Viewer"
