@@ -73,6 +73,10 @@ struct Config {
     /// date/time, application, category, host). Omit to disable recording.
     #[serde(default)]
     usage_db: Option<String>,
+    /// Environments inspected by the "Show library versions" switch offered
+    /// in an unlocked password-protected category (see `LibraryVersions`).
+    #[serde(default)]
+    library_versions: LibraryVersions,
 }
 
 fn default_title() -> String {
@@ -92,6 +96,29 @@ struct Category {
     /// All view, the search results and "Recently used".
     #[serde(default)]
     passwords: Vec<String>,
+}
+
+/// `[library_versions]`: the admin "Show library versions" switch. Lists,
+/// for each configured Python environment (pixi, conda, venv…), the version
+/// of its installed packages — to check e.g. which NeuNorm the marimo
+/// notebooks use versus the Jupyter ones.
+#[derive(Deserialize, Clone, Default)]
+struct LibraryVersions {
+    /// Packages listed first in every environment, in this order, with
+    /// "not installed" when missing (names compared case-insensitively,
+    /// `-`, `_` and `.` treated alike). The other installed packages are
+    /// behind the "All packages" section and the filter box.
+    #[serde(default)]
+    packages: Vec<String>,
+    #[serde(default, rename = "environment")]
+    environments: Vec<EnvEntry>,
+}
+
+#[derive(Deserialize, Clone)]
+struct EnvEntry {
+    name: String,
+    /// The environment's `python` executable.
+    python: String,
 }
 
 #[derive(Deserialize)]
@@ -681,6 +708,330 @@ fn load_preview(ctx: &egui::Context, app: &AppEntry, idx: usize) -> Preview {
 // ---------------------------------------------------------------------------
 // Application state
 // ---------------------------------------------------------------------------
+// Library versions (admin view)
+// ---------------------------------------------------------------------------
+
+/// Python snippet printing `{"python": "3.x.y", "packages": {name: version}}`
+/// for every distribution visible to the interpreter it runs in.
+const LIST_PACKAGES_PY: &str = r#"
+import importlib.metadata as m, json, sys
+pk = {}
+for d in m.distributions():
+    n = d.metadata['Name']
+    if n:
+        pk[n] = d.version
+print(json.dumps({'python': sys.version.split()[0], 'packages': pk}))
+"#;
+
+/// Package-name normalisation (PEP 503): case-insensitive, `-`/`_`/`.` alike.
+fn norm_pkg(name: &str) -> String {
+    name.trim().to_lowercase().replace(['_', '.'], "-")
+}
+
+/// Python version + installed packages, sorted by name.
+type PackageList = (String, Vec<(String, String)>);
+
+fn list_env_packages(python: &str) -> Result<PackageList, String> {
+    if !Path::new(python).is_file() {
+        return Err("python executable not found".to_owned());
+    }
+    let out = Command::new(python)
+        .args(["-c", LIST_PACKAGES_PY])
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|e| format!("cannot run python: {e}"))?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr);
+        return Err(format!(
+            "python failed: {}",
+            err.trim().lines().last().unwrap_or("(no output)")
+        ));
+    }
+    let v: serde_json::Value =
+        serde_json::from_slice(&out.stdout).map_err(|e| format!("bad output: {e}"))?;
+    let pyver = v["python"].as_str().unwrap_or("?").to_owned();
+    let mut pk: Vec<(String, String)> = v["packages"]
+        .as_object()
+        .map(|o| {
+            o.iter()
+                .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("?").to_owned()))
+                .collect()
+        })
+        .unwrap_or_default();
+    pk.sort_by_key(|(n, _)| n.to_lowercase());
+    Ok((pyver, pk))
+}
+
+/// Listing of one environment (`index` into `LibraryVersions::environments`).
+struct EnvVersions {
+    index: usize,
+    result: Result<PackageList, String>,
+}
+
+/// Package listing of every configured environment, one thread each (a
+/// python start-up on GPFS takes seconds; they run in parallel).
+struct VersionsScan {
+    rx: mpsc::Receiver<EnvVersions>,
+    expected: usize,
+    envs: Vec<EnvVersions>,
+}
+
+impl VersionsScan {
+    fn start(lv: &LibraryVersions) -> Self {
+        let (tx, rx) = mpsc::channel();
+        for (index, env) in lv.environments.iter().enumerate() {
+            let tx = tx.clone();
+            let python = env.python.clone();
+            std::thread::spawn(move || {
+                let result = list_env_packages(&python);
+                let _ = tx.send(EnvVersions { index, result });
+            });
+        }
+        Self { rx, expected: lv.environments.len(), envs: Vec::new() }
+    }
+
+    fn poll(&mut self) {
+        while let Ok(env) = self.rx.try_recv() {
+            self.envs.push(env);
+        }
+    }
+
+    fn running(&self) -> bool {
+        self.envs.len() < self.expected
+    }
+
+    fn env(&self, index: usize) -> Option<&EnvVersions> {
+        self.envs.iter().find(|e| e.index == index)
+    }
+}
+
+/// Plain-text report (configured packages of every environment) for the
+/// clipboard.
+fn versions_report(lv: &LibraryVersions, scan: &VersionsScan) -> String {
+    let mut out = String::new();
+    for (i, env) in lv.environments.iter().enumerate() {
+        out.push_str(&format!("{}\n  {}\n", env.name, env.python));
+        match scan.env(i).map(|e| &e.result) {
+            None => out.push_str("  (not read yet)\n"),
+            Some(Err(e)) => out.push_str(&format!("  error: {e}\n")),
+            Some(Ok((pyver, pk))) => {
+                out.push_str(&format!("  python: {pyver}\n"));
+                for want in &lv.packages {
+                    let key = norm_pkg(want);
+                    match pk.iter().find(|(n, _)| norm_pkg(n) == key) {
+                        Some((n, v)) => out.push_str(&format!("  {n}: {v}\n")),
+                        None => out.push_str(&format!("  {want}: not installed\n")),
+                    }
+                }
+            }
+        }
+        out.push('\n');
+    }
+    out
+}
+
+/// iOS-style on/off switch.
+fn toggle_switch(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
+    let desired = ui.spacing().interact_size.y * egui::vec2(2.0, 1.0);
+    let (rect, mut response) = ui.allocate_exact_size(desired, egui::Sense::click());
+    if response.clicked() {
+        *on = !*on;
+        response.mark_changed();
+    }
+    if ui.is_rect_visible(rect) {
+        let t = ui.ctx().animate_bool_responsive(response.id, *on);
+        let visuals = ui.style().interact_selectable(&response, *on);
+        let rect = rect.expand(visuals.expansion);
+        let radius = 0.5 * rect.height();
+        let fill = if *on { theme::PRIMARY } else { visuals.bg_fill };
+        ui.painter()
+            .rect(rect, radius, fill, visuals.bg_stroke, egui::StrokeKind::Inside);
+        let cx = egui::lerp((rect.left() + radius)..=(rect.right() - radius), t);
+        let center = egui::pos2(cx, rect.center().y);
+        ui.painter()
+            .circle(center, 0.75 * radius, visuals.fg_stroke.color, visuals.fg_stroke);
+    }
+    response
+}
+
+/// The library-versions panel (admin view). Returns whether a (re)scan was
+/// requested.
+fn versions_panel(
+    ui: &mut egui::Ui,
+    lv: &LibraryVersions,
+    scan: Option<&VersionsScan>,
+    filter: &mut String,
+) -> bool {
+    if lv.environments.is_empty() {
+        ui.vertical_centered(|ui| {
+            ui.add_space(24.0);
+            ui.label(
+                egui::RichText::new(
+                    "No environment configured: add a [library_versions] table with \
+                     [[library_versions.environment]] entries to applications.toml",
+                )
+                .weak()
+                .italics(),
+            );
+        });
+        return false;
+    }
+    let mut refresh = false;
+    let running = scan.map(|s| s.running()).unwrap_or(false);
+    ui.horizontal(|ui| {
+        if ui
+            .add_enabled(!running, egui::Button::new("⟳ Refresh"))
+            .on_hover_text("Read the environments again")
+            .clicked()
+        {
+            refresh = true;
+        }
+        if let Some(scan) = scan {
+            if ui
+                .add_enabled(!running, egui::Button::new("📋 Copy report"))
+                .on_hover_text("Copy the versions of the listed packages to the clipboard")
+                .clicked()
+            {
+                ui.ctx().copy_text(versions_report(lv, scan));
+            }
+        }
+        if running {
+            ui.spinner();
+            let done = scan.map(|s| s.envs.len()).unwrap_or(0);
+            ui.label(
+                egui::RichText::new(format!(
+                    "Reading environment {} of {}…",
+                    done + 1,
+                    lv.environments.len()
+                ))
+                .weak(),
+            );
+        }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if !filter.is_empty() && ui.small_button("✖").clicked() {
+                filter.clear();
+            }
+            ui.add(
+                egui::TextEdit::singleline(filter)
+                    .hint_text("Filter packages (e.g. neunorm)")
+                    .desired_width(220.0),
+            );
+        });
+    });
+    ui.add_space(6.0);
+
+    let filt = norm_pkg(filter);
+    egui::ScrollArea::vertical()
+        .id_salt("versions_scroll")
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            for (i, env) in lv.environments.iter().enumerate() {
+                let result = scan.and_then(|s| s.env(i)).map(|e| &e.result);
+                let title = match result {
+                    Some(Ok((pyver, _))) => format!("{}  ·  Python {pyver}", env.name),
+                    _ => env.name.clone(),
+                };
+                egui::CollapsingHeader::new(egui::RichText::new(title).strong())
+                    .id_salt(("versions_env", i))
+                    .default_open(true)
+                    .show(ui, |ui| {
+                        ui.label(egui::RichText::new(&env.python).weak().small());
+                        ui.add_space(2.0);
+                        match result {
+                            None => {
+                                ui.horizontal(|ui| {
+                                    ui.spinner();
+                                    ui.label(egui::RichText::new("Reading…").weak());
+                                });
+                            }
+                            Some(Err(e)) => {
+                                ui.colored_label(theme::DANGER, format!("✖ {e}"));
+                            }
+                            Some(Ok((_, pk))) => {
+                                let mut shown: HashSet<String> = HashSet::new();
+                                let mut rows = 0;
+                                egui::Grid::new(("versions_grid", i))
+                                    .num_columns(2)
+                                    .spacing([28.0, 4.0])
+                                    .striped(true)
+                                    .show(ui, |ui| {
+                                        for want in &lv.packages {
+                                            let key = norm_pkg(want);
+                                            if !filt.is_empty() && !key.contains(&filt) {
+                                                continue;
+                                            }
+                                            shown.insert(key.clone());
+                                            rows += 1;
+                                            match pk.iter().find(|(n, _)| norm_pkg(n) == key) {
+                                                Some((n, v)) => {
+                                                    ui.label(egui::RichText::new(n).strong());
+                                                    ui.label(
+                                                        egui::RichText::new(v)
+                                                            .color(theme::primary_text(ui.visuals()))
+                                                            .strong(),
+                                                    );
+                                                }
+                                                None => {
+                                                    ui.label(egui::RichText::new(want).strong());
+                                                    ui.label(
+                                                        egui::RichText::new("not installed")
+                                                            .weak()
+                                                            .italics(),
+                                                    );
+                                                }
+                                            }
+                                            ui.end_row();
+                                        }
+                                        // The other packages only when filtering;
+                                        // the full list is behind the section below.
+                                        if !filt.is_empty() {
+                                            for (n, v) in pk {
+                                                let key = norm_pkg(n);
+                                                if shown.contains(&key) || !key.contains(&filt) {
+                                                    continue;
+                                                }
+                                                rows += 1;
+                                                ui.label(n);
+                                                ui.label(v);
+                                                ui.end_row();
+                                            }
+                                        }
+                                    });
+                                if rows == 0 {
+                                    ui.label(
+                                        egui::RichText::new("No package matches the filter")
+                                            .weak()
+                                            .italics(),
+                                    );
+                                }
+                                if filt.is_empty() {
+                                    egui::CollapsingHeader::new(format!("All {} packages", pk.len()))
+                                        .id_salt(("versions_all", i))
+                                        .default_open(false)
+                                        .show(ui, |ui| {
+                                            egui::Grid::new(("versions_all_grid", i))
+                                                .num_columns(2)
+                                                .spacing([28.0, 2.0])
+                                                .striped(true)
+                                                .show(ui, |ui| {
+                                                    for (n, v) in pk {
+                                                        ui.label(n);
+                                                        ui.label(v);
+                                                        ui.end_row();
+                                                    }
+                                                });
+                                        });
+                                }
+                            }
+                        }
+                    });
+                ui.add_space(4.0);
+            }
+        });
+    refresh
+}
+
+// ---------------------------------------------------------------------------
 
 /// A launched child watched for a short while so an immediate crash shows up
 /// in the status bar; kept afterwards only to reap it when it exits.
@@ -960,6 +1311,12 @@ struct App {
     browser_scan: Option<(String, mpsc::Receiver<String>)>,
     /// The browser report window, when shown.
     browser_window: Option<BrowserWindow>,
+    /// Admin switch: show the library versions instead of the app list.
+    show_versions: bool,
+    /// Package filter box of the library-versions panel.
+    versions_filter: String,
+    /// Package listing of every configured environment (running or done).
+    versions: Option<VersionsScan>,
     /// "Launch anyway" was clicked for this app: skip the profile-lock check
     /// on the next launch.
     launch_anyway: Option<usize>,
@@ -994,6 +1351,9 @@ impl App {
             pending: Vec::new(),
             browser_scan: None,
             browser_window: None,
+            show_versions: false,
+            versions_filter: String::new(),
+            versions: None,
             launch_anyway: None,
             last_config_check: 0.0,
             last_availability_check: 0.0,
@@ -1283,6 +1643,12 @@ impl eframe::App for App {
         // ------------------------------------------- background housekeeping
         self.poll_pending(now);
         self.poll_browser_scan();
+        if let Some(scan) = &mut self.versions {
+            scan.poll();
+            if scan.running() {
+                ctx.request_repaint_after(std::time::Duration::from_millis(200));
+            }
+        }
         if now - self.last_config_check >= CONFIG_CHECK_PERIOD {
             self.last_config_check = now;
             if config_mtime(&self.config_path) != self.config_mtime {
@@ -1720,6 +2086,7 @@ impl eframe::App for App {
             });
 
         // ------------------------------------------------- application list
+        let mut versions_request = false;
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.add_space(8.0);
 
@@ -1802,6 +2169,46 @@ impl eframe::App for App {
                     }
                 }));
                 return;
+            }
+
+            // An unlocked password-protected category offers the admin
+            // "library versions" switch; on, it replaces the app list.
+            let admin_cat = self
+                .active_category
+                .as_deref()
+                .and_then(|c| cfg.categories.iter().find(|cat| cat.id == c))
+                .filter(|cat| !cat.passwords.is_empty());
+            if admin_cat.is_some() {
+                ui.horizontal(|ui| {
+                    ui.add_space(4.0);
+                    if toggle_switch(ui, &mut self.show_versions).changed()
+                        && self.show_versions
+                        && self.versions.is_none()
+                    {
+                        versions_request = true;
+                    }
+                    ui.label(egui::RichText::new("Show library versions").strong());
+                    ui.label(
+                        egui::RichText::new(
+                            "— Python packages installed in each environment (NeuNorm, marimo…)",
+                        )
+                        .weak(),
+                    );
+                });
+                ui.add_space(6.0);
+                if self.show_versions {
+                    if versions_panel(
+                        ui,
+                        &cfg.library_versions,
+                        self.versions.as_ref(),
+                        &mut self.versions_filter,
+                    ) {
+                        versions_request = true;
+                    }
+                    return;
+                }
+                ui.separator();
+                ui.add_space(4.0);
             }
 
             if visible.is_empty() {
@@ -1915,6 +2322,10 @@ impl eframe::App for App {
             });
         });
         self.scroll_to_highlight = false;
+
+        if versions_request {
+            self.versions = Some(VersionsScan::start(&cfg.library_versions));
+        }
 
         if let Some(new_cat) = clicked_category {
             let opens_prompt = new_cat

@@ -51,6 +51,53 @@ subtitle = "All VENUS / MARS imaging applications in one place"
 # category). Comment out to disable recording.
 usage_db = "/SNS/VENUS/shared/software/usage_db"
 
+# Library versions (admin view). Once a password-protected category is
+# unlocked, a "Show library versions" switch at the top of its list shows,
+# for each environment below, the version of its Python packages.
+# `packages` are listed first (with "not installed" when missing, names
+# compared case-insensitively); every other installed package sits behind
+# the "All packages" section and the filter box. Add an environment by
+# pointing `python` at the interpreter the tool actually runs with.
+[library_versions]
+packages = [
+    "NeuNorm", "neutronbraggedge", "marimo", "jupyterlab", "notebook",
+    "numpy", "scipy", "scikit-image", "matplotlib", "h5py", "astropy",
+    "tifffile", "tomopy", "algotom", "svmbir", "mbirjax", "bm3dornl",
+    "imars3d",
+]
+
+[[library_versions.environment]]
+name = "Marimo notebooks (general tools & dedicated IPTS)"
+python = "/SNS/VENUS/shared/software/git/marimo_notebooks/.pixi/envs/default/bin/python"
+
+[[library_versions.environment]]
+name = "Marimo notebooks (beta)"
+python = "/SNS/VENUS/shared/software/git/marimo_notebooks_development/.pixi/envs/default/bin/python"
+
+[[library_versions.environment]]
+name = "Jupyter data-reduction notebooks"
+python = "/SNS/VENUS/shared/software/git/python_notebooks_data_reduction/.pixi/envs/default/bin/python"
+
+[[library_versions.environment]]
+name = "Jupyter notebooks"
+python = "/SNS/VENUS/shared/software/git/python_notebooks/.pixi/envs/default/bin/python"
+
+[[library_versions.environment]]
+name = "Jupyter notebooks (development)"
+python = "/SNS/VENUS/shared/software/git/python_notebooks_development/.pixi/envs/default/bin/python"
+
+[[library_versions.environment]]
+name = "Dedicated-IPTS Jupyter notebooks"
+python = "/SNS/VENUS/shared/software/git/python_notebook_ipts/.pixi/envs/default/bin/python"
+
+[[library_versions.environment]]
+name = "CT reconstruction"
+python = "/SNS/VENUS/shared/software/git/all_ct_reconstruction/.pixi/envs/default/bin/python"
+
+[[library_versions.environment]]
+name = "CT reconstruction (development)"
+python = "/SNS/VENUS/shared/software/git/all_ct_reconstruction_development/.pixi/envs/default/bin/python"
+
 [[category]]
 id = "rust"
 name = "Rust Applications"
