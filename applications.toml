@@ -135,6 +135,11 @@ id = "restricted"
 name = "Restricted"
 passwords = ["venus", "mars"]
 
+[[category]]
+id = "beta"
+name = "Beta"
+passwords = ["psg"]
+
 # --------------------------------------------------------------------------
 # Rust applications
 # --------------------------------------------------------------------------
@@ -181,11 +186,11 @@ tags = ["bubble", "profile", "mask", "battery", "electrolyte", "heat map", "csv"
 
 [[app]]
 name = "Peak Difference Map"
-description = "For a stack of TOF image folders: place a crop box inside the sample with a horizontal profile, rebin it, pick a range on each side of a peak on the per-pixel profile, and map (right mean − left mean) for every folder — TIFF + JSON export."
+description = "For a stack of TOF image folders: place a crop box inside the sample with a horizontal profile, rebin it, pick a range on each side of a peak on the per-pixel profile, map (right mean − left mean) for every folder, or fit the Kropff Bragg-edge model (iBeatles / iBEAMS method, σ from the whole crop) per pixel / column and map the edge height, position and the other parameters — TIFF + JSON export."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_peak_difference_map/launch_peak_difference_map.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_peak_difference_map_preview.png"
-tags = ["peak", "bragg edge", "difference", "crop", "rebin", "profile", "ct", "tof"]
+tags = ["peak", "bragg edge", "kropff", "fit", "height", "difference", "crop", "rebin", "profile", "ct", "tof"]
 
 [[app]]
 name = "ROI Selector"
@@ -703,6 +708,19 @@ requires_browser = true
 # section = "Web links"
 # url = "https://dasdev1.sns.gov/eic-utils"
 # tags = ["web", "link", "eic", "das", "admin"]
+
+# --------------------------------------------------------------------------
+# Beta (password protected — see the [[category]] block above)
+# Development versions under test before they replace the production ones.
+# --------------------------------------------------------------------------
+
+[[app]]
+name = "Auto Normalization Monitor at VENUS (beta)"
+description = "Beta version of the VENUS auto normalization monitor (rust_autonormalization_monitor_development, branch beta) — new features under test before they reach the production version."
+category = "beta"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor_development/launch_autonormalization_monitor.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autonormalization_monitor_preview.png"
+tags = ["normalization", "venus", "auto", "beta", "development"]
 
 # --------------------------------------------------------------------------
 # System tools
