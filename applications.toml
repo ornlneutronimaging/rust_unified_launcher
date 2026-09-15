@@ -193,6 +193,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_pe
 tags = ["peak", "bragg edge", "kropff", "fit", "height", "difference", "crop", "rebin", "profile", "ct", "tof"]
 
 [[app]]
+name = "Root Plant Processing"
+description = "Rust port of the rhizotools / RootPlantProcessing pipeline for plant roots in soil (MARS): stitch the radiographs, crop, water content, root mask, filter, soil distance map, radial water content tables, root thickness and root-only water content — same user_config.txt as the Python package, outputs identical to it, ~100× faster; GUI with per-step viewers and a headless --run mode."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_root_plant_processing/launch_root_plant_processing.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_root_plant_processing_preview.png"
+tags = ["root", "plant", "rhizotools", "rhizosphere", "soil", "water content", "stitch", "mask", "thickness", "mars", "distmap", "radwc"]
+
+[[app]]
 name = "ROI Selector"
 description = "Select regions of interest on an imaging data set and export a mask file."
 category = "rust"
@@ -688,16 +696,6 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/portal_
 tags = ["usage", "statistics", "monitor", "database", "log", "launches", "web", "browser", "dashboard"]
 requires_browser = true
 
-[[app]]
-name = "Marimo Notebooks (beta)"
-description = "Development version of the marimo notebooks — opens the marimo editor on the marimo_notebooks_development checkout."
-category = "restricted"
-command = ["/SNS/VENUS/shared/software/git/marimo_notebooks_development/.pixi/envs/default/bin/marimo", "edit", "/SNS/VENUS/shared/software/git/marimo_notebooks_development/notebooks"]
-workdir = "/SNS/VENUS/shared/software/git/marimo_notebooks_development"
-in_terminal = true
-tags = ["marimo", "beta", "development", "notebooks"]
-requires_browser = true
-
 # ---- Web links ----
 
 # Deactivated for now (2026-09-01) — EIC utils not usable at the moment.
@@ -721,6 +719,16 @@ category = "beta"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor_development/launch_autonormalization_monitor.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autonormalization_monitor_preview.png"
 tags = ["normalization", "venus", "auto", "beta", "development"]
+
+[[app]]
+name = "Marimo Notebooks (beta)"
+description = "Development version of the marimo notebooks — opens the marimo editor on the marimo_notebooks_development checkout."
+category = "beta"
+command = ["/SNS/VENUS/shared/software/git/marimo_notebooks_development/.pixi/envs/default/bin/marimo", "edit", "/SNS/VENUS/shared/software/git/marimo_notebooks_development/notebooks"]
+workdir = "/SNS/VENUS/shared/software/git/marimo_notebooks_development"
+in_terminal = true
+tags = ["marimo", "beta", "development", "notebooks"]
+requires_browser = true
 
 # --------------------------------------------------------------------------
 # System tools
