@@ -193,14 +193,6 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_pe
 tags = ["peak", "bragg edge", "kropff", "fit", "height", "difference", "crop", "rebin", "profile", "ct", "tof"]
 
 [[app]]
-name = "Root Plant Processing"
-description = "Rust port of the rhizotools / RootPlantProcessing pipeline for plant roots in soil (MARS): stitch the radiographs, crop, water content, root mask, filter, soil distance map, radial water content tables, root thickness and root-only water content — same user_config.txt as the Python package, outputs identical to it, ~100× faster; GUI with per-step viewers and a headless --run mode."
-category = "rust"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_root_plant_processing/launch_root_plant_processing.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_root_plant_processing_preview.png"
-tags = ["root", "plant", "rhizotools", "rhizosphere", "soil", "water content", "stitch", "mask", "thickness", "mars", "distmap", "radwc"]
-
-[[app]]
 name = "ROI Selector"
 description = "Select regions of interest on an imaging data set and export a mask file."
 category = "rust"
@@ -238,6 +230,14 @@ category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_stage_offset_corrector/launch_stage_offset_corrector.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_stage_offset_corrector_preview.png"
 tags = ["offset", "shift", "stage", "align", "overlay", "profile", "translation", "registration", "batch"]
+
+[[app]]
+name = "Sample Drift Viewer"
+description = "Did the sample drift? Load a series of Timepix runs (run numbers such as 19719-19727, or browse for run folders), flip through their integrated images with a slider / play, and follow a line profile of adjustable width across every run: profile overlay, run × position map and sub-pixel shift of each run against a reference run. A PV of the NeXus files (e.g. a sample temperature) can be overlaid on the shift plot with its own y axis on the right. Difference-vs-reference view, CSV export, headless mode."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_sample_drift_viewer/launch_sample_drift_viewer.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_sample_drift_viewer_preview.png"
+tags = ["drift", "timepix", "runs", "integrated", "slider", "profile", "edge", "shift", "stability", "motion", "pv", "temperature"]
 
 [[app]]
 name = "CT Reconstruction"
@@ -722,17 +722,25 @@ tags = ["normalization", "venus", "auto", "beta", "development"]
 
 [[app]]
 name = "Marimo Notebooks (beta)"
-description = "Development version of the marimo notebooks — opens the marimo editor on the marimo_notebooks_development checkout."
+description = "Beta version of the general-tools marimo portal — same portal as production (pick a notebook and an IPTS, runs in app mode), but serving the notebooks of the marimo_notebooks_development checkout."
 category = "beta"
-command = ["/SNS/VENUS/shared/software/git/marimo_notebooks_development/.pixi/envs/default/bin/marimo", "edit", "/SNS/VENUS/shared/software/git/marimo_notebooks_development/notebooks"]
-workdir = "/SNS/VENUS/shared/software/git/marimo_notebooks_development"
-in_terminal = true
+command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal_general_tools_beta"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/marimo_portal_general_tools_preview.png"
+clear_fontconfig = true
 tags = ["marimo", "beta", "development", "notebooks"]
 requires_browser = true
 
 # --------------------------------------------------------------------------
 # System tools
 # --------------------------------------------------------------------------
+
+[[app]]
+name = "Root Plant Processing"
+description = "Rust port of the rhizotools / RootPlantProcessing pipeline for plant roots in soil (MARS): stitch the radiographs, crop, water content, root mask, filter, soil distance map, radial water content tables, root thickness and root-only water content — same user_config.txt as the Python package, outputs identical to it, ~100× faster; GUI with per-step viewers and a headless --run mode."
+category = "beta"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_root_plant_processing/launch_root_plant_processing.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_root_plant_processing_preview.png"
+tags = ["root", "plant", "rhizotools", "rhizosphere", "soil", "water content", "stitch", "mask", "thickness", "mars", "distmap", "radwc"]
 
 [[app]]
 name = "System Report Dashboard"
