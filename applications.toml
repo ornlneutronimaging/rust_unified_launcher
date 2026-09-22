@@ -746,6 +746,14 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_polarization/la
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_tof_polarization_preview.png"
 tags = ["polarization", "polarized", "spin", "tof", "magnetic", "field", "precession", "larmor", "depolarization", "venus", "beta"]
 
+[[app]]
+name = "Optical Density"
+description = "Optical density OD = -ln(I_sample / I_reference) of a normalized TOF stack (after Lombardo et al., Sci. Rep. 2026): draw a region on the integrated image, select the reference band then the sample band on its profile (file index / TOF / lambda / energy; bands can be moved and resized), and get the OD image of the two bands with its colorbar, the mean OD in the region, and a float32 TIFF export. The detector offset is read from the run's NeXus file when the path names the IPTS and run."
+category = "beta"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_optical_density/launch_rust_optical_density.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_optical_density_preview.png"
+tags = ["optical", "density", "od", "attenuation", "reference", "sample", "band", "tof", "normalized", "ice", "water", "venus", "beta"]
+
 # --------------------------------------------------------------------------
 # System tools
 # --------------------------------------------------------------------------
