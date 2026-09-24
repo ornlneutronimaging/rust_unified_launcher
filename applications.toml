@@ -342,6 +342,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ve
 tags = ["monitor", "beam", "nexus", "tof", "wavelength", "csv"]
 
 [[app]]
+name = "Beamline Search"
+description = "Find text or dates anywhere in the VENUS or MARS folders (NeXus metadata & file names, image run folders, shared folders) with a Python-style regular expression; every hit opens in the file browser."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_beamline_search/launch_beamline_search.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_beamline_search_preview.png"
+tags = ["search", "find", "regex", "grep", "nexus", "sample", "title", "date", "ipts", "venus", "mars", "shared", "images"]
+
+[[app]]
 name = "Timepix3 Tool (rustpix)"
 description = "Process Timepix3 (TPX3) pixel detector data with the rustpix GUI."
 category = "rust"
@@ -704,6 +712,70 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/portal_
 tags = ["usage", "statistics", "monitor", "database", "log", "launches", "web", "browser", "dashboard"]
 requires_browser = true
 
+# ---- System tools (admin only: machine users, licenses, IPTS lookup) ----
+
+[[app]]
+name = "System Report Dashboard"
+description = "Web dashboard: analysis machine users, AMIRA licenses, who is connected, find IPTS, and per-user CPU/memory usage that flags orphaned users (processes left behind after logout) with an admin kill command."
+category = "restricted"
+section = "System tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/launch_system_report.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["report", "dashboard", "monitoring", "resources", "cpu", "memory", "orphan", "kill"]
+requires_browser = true
+
+[[app]]
+name = "Resource Usage per User"
+description = "CPU / memory per user on every analysis machine from the process table; flags ORPHAN users who still own processes (marimo, jupyter) after their session was closed."
+category = "restricted"
+section = "System tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/resource_usage_per_user.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["users", "cpu", "memory", "orphan", "marimo", "jupyter", "bl10", "cg1d"]
+
+[[app]]
+name = "Who Is Connected (this machine)"
+description = "List the users currently logged in to this machine, with name and email."
+category = "restricted"
+section = "System tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/who_is_connected.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["users", "sessions"]
+
+[[app]]
+name = "Analysis Machine Users"
+description = "Users connected to every VENUS (bl10) and MARS (cg1d) analysis machine."
+category = "restricted"
+section = "System tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/list_analysis_machine_users.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["users", "bl10", "cg1d"]
+
+[[app]]
+name = "AMIRA License Users"
+description = "Who is holding AMIRA licenses on MARS and VENUS, with start time and duration."
+category = "restricted"
+section = "System tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/list_amira_license_users.sh"]
+in_terminal = true
+hold_terminal = true
+tags = ["avizo", "licenses"]
+
+[[app]]
+name = "Find IPTS from Run Number"
+description = "Prompt for a VENUS run number and report which IPTS contains it."
+category = "restricted"
+section = "System tools"
+command = ["/bin/bash", "-c", "read -r -p 'VENUS run number: ' rn; /SNS/VENUS/shared/software/bin/find_ipts.sh \"$rn\""]
+check_path = "/SNS/VENUS/shared/software/bin/find_ipts.sh"
+in_terminal = true
+hold_terminal = true
+tags = ["run", "nexus"]
+
 # ---- Web links ----
 
 # Deactivated for now (2026-09-01) — EIC utils not usable at the moment.
@@ -765,53 +837,6 @@ category = "beta"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_root_plant_processing/launch_root_plant_processing.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_root_plant_processing_preview.png"
 tags = ["root", "plant", "rhizotools", "rhizosphere", "soil", "water content", "stitch", "mask", "thickness", "mars", "distmap", "radwc"]
-
-[[app]]
-name = "System Report Dashboard"
-description = "Web dashboard: analysis machine users, AMIRA licenses, who is connected, find IPTS."
-category = "tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/launch_system_report.sh"]
-in_terminal = true
-hold_terminal = true
-tags = ["report", "dashboard", "monitoring"]
-requires_browser = true
-
-[[app]]
-name = "Who Is Connected (this machine)"
-description = "List the users currently logged in to this machine, with name and email."
-category = "tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/who_is_connected.sh"]
-in_terminal = true
-hold_terminal = true
-tags = ["users", "sessions"]
-
-[[app]]
-name = "Analysis Machine Users"
-description = "Users connected to every VENUS (bl10) and MARS (cg1d) analysis machine."
-category = "tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/list_analysis_machine_users.sh"]
-in_terminal = true
-hold_terminal = true
-tags = ["users", "bl10", "cg1d"]
-
-[[app]]
-name = "AMIRA License Users"
-description = "Who is holding AMIRA licenses on MARS and VENUS, with start time and duration."
-category = "tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/list_amira_license_users.sh"]
-in_terminal = true
-hold_terminal = true
-tags = ["avizo", "licenses"]
-
-[[app]]
-name = "Find IPTS from Run Number"
-description = "Prompt for a VENUS run number and report which IPTS contains it."
-category = "tools"
-command = ["/bin/bash", "-c", "read -r -p 'VENUS run number: ' rn; /SNS/VENUS/shared/software/bin/find_ipts.sh \"$rn\""]
-check_path = "/SNS/VENUS/shared/software/bin/find_ipts.sh"
-in_terminal = true
-hold_terminal = true
-tags = ["run", "nexus"]
 
 [[app]]
 name = "Fix Running Browser / Jupyter"
