@@ -127,6 +127,10 @@ id = "mars"
 name = "MARS"
 
 [[category]]
+id = "experiment"
+name = "Experiment"
+
+[[category]]
 id = "tools"
 name = "System Tools"
 
@@ -240,6 +244,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_sa
 tags = ["drift", "timepix", "runs", "integrated", "slider", "profile", "edge", "shift", "stability", "motion", "pv", "temperature"]
 
 [[app]]
+name = "Outlier Removal"
+description = "ImageJ's Process > Noise > Remove Outliers for VENUS / MARS images (hot / dead pixels, gamma spots), checked bit-for-bit against Fiji. Load runs by number (30420, 30425-30430), browse or drag-and-drop TIFF files / folders; same parameters as ImageJ (radius = cluster size, threshold, bright / dark / both); live before-after histograms and statistics; Before / After / Difference / Split / Blend / Blink views with the replaced pixels marked; export with the same bit depth (spectra files copied) or hand the corrected images back to a calling application. Headless mode."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_outlier_removal/launch_outlier_removal.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_outlier_removal_preview.png"
+tags = ["outlier", "outliers", "imagej", "fiji", "median", "hot pixel", "dead pixel", "gamma", "despeckle", "noise", "clean", "histogram", "qhy", "ccd", "timepix", "filter"]
+
+[[app]]
 name = "Run Registration"
 description = "Register a series of Timepix runs against a reference run: sub-pixel (x, y) offset of every run measured on the integrated images, checked by eye (slider / play, difference-vs-reference view, offsets table and plot, manual override), then applied to every frame and exported to a new folder that keeps the original run folder names. The registered runs can be opened straight in the Sample Drift Viewer. Whole-pixel mode, headless mode."
 category = "rust"
@@ -340,14 +352,6 @@ category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_venus_monitor/launch_venus_monitor.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_venus_monitor_preview.png"
 tags = ["monitor", "beam", "nexus", "tof", "wavelength", "csv"]
-
-[[app]]
-name = "Beamline Search"
-description = "Find text or dates anywhere in the VENUS or MARS folders (NeXus metadata & file names, image run folders, shared folders) with a Python-style regular expression; every hit opens in the file browser."
-category = "rust"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_beamline_search/launch_beamline_search.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_beamline_search_preview.png"
-tags = ["search", "find", "regex", "grep", "nexus", "sample", "title", "date", "ipts", "venus", "mars", "shared", "images"]
 
 [[app]]
 name = "Timepix3 Tool (rustpix)"
@@ -652,6 +656,36 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_m
 tags = ["normalization", "mars", "cg1d", "auto"]
 
 # --------------------------------------------------------------------------
+# Experiment
+# --------------------------------------------------------------------------
+
+[[app]]
+name = "VENUS IPTS Report"
+description = "Full report of an IPTS: every run per detector with date/time, duration, proton charge, sample, starting neutron bandwidth (from the run-level file name) and the open beam / dark current runs that pair with it. HTML and CSV export."
+category = "experiment"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ipts_report/launch_ipts_report.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ipts_report_preview.png"
+tags = ["ipts", "report", "runs", "open beam", "dark current", "proton charge", "bandwidth", "nexus", "html", "csv"]
+
+[[app]]
+name = "Find IPTS from Run Number"
+description = "Prompt for a VENUS run number and report which IPTS contains it."
+category = "experiment"
+command = ["/bin/bash", "-c", "read -r -p 'VENUS run number: ' rn; /SNS/VENUS/shared/software/bin/find_ipts.sh \"$rn\""]
+check_path = "/SNS/VENUS/shared/software/bin/find_ipts.sh"
+in_terminal = true
+hold_terminal = true
+tags = ["run", "nexus", "ipts", "find", "lookup"]
+
+[[app]]
+name = "Beamline Search"
+description = "Find text or dates anywhere in the VENUS or MARS folders (NeXus metadata & file names, image run folders, shared folders) with a Python-style regular expression; every hit opens in the file browser."
+category = "experiment"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_beamline_search/launch_beamline_search.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_beamline_search_preview.png"
+tags = ["search", "find", "regex", "grep", "nexus", "sample", "title", "date", "ipts", "venus", "mars", "shared", "images"]
+
+# --------------------------------------------------------------------------
 # Restricted (password protected — see the [[category]] block above)
 # --------------------------------------------------------------------------
 
@@ -670,14 +704,6 @@ category = "restricted"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autoreduce_checker/launch_autoreduce_checker.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autoreduce_checker_preview.png"
 tags = ["autoreduction", "check", "verify", "timepix", "mcp", "raw", "compare", "profile", "log"]
-
-[[app]]
-name = "VENUS IPTS Report"
-description = "Full report of an IPTS: every run per detector with date/time, duration, proton charge, sample, starting neutron bandwidth (from the run-level file name) and the open beam / dark current runs that pair with it. HTML and CSV export."
-category = "restricted"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ipts_report/launch_ipts_report.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ipts_report_preview.png"
-tags = ["ipts", "report", "runs", "open beam", "dark current", "proton charge", "bandwidth", "nexus", "html", "csv"]
 
 [[app]]
 name = "MCP Chips Aligner"
@@ -764,17 +790,6 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/bin/list_amira_license_users
 in_terminal = true
 hold_terminal = true
 tags = ["avizo", "licenses"]
-
-[[app]]
-name = "Find IPTS from Run Number"
-description = "Prompt for a VENUS run number and report which IPTS contains it."
-category = "restricted"
-section = "System tools"
-command = ["/bin/bash", "-c", "read -r -p 'VENUS run number: ' rn; /SNS/VENUS/shared/software/bin/find_ipts.sh \"$rn\""]
-check_path = "/SNS/VENUS/shared/software/bin/find_ipts.sh"
-in_terminal = true
-hold_terminal = true
-tags = ["run", "nexus"]
 
 # ---- Web links ----
 

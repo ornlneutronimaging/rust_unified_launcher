@@ -54,6 +54,10 @@ const AVAILABILITY_PERIOD: f64 = 5.0;
 /// Number of entries shown in the "Recently used" section.
 const RECENT_SHOWN: usize = 5;
 
+/// Pseudo category id of the sidebar's "Favorites" view (the apps the user
+/// starred). Not a valid `[[category]]` id, so it can never collide.
+const FAVORITES_VIEW: &str = "\u{2605}favorites";
+
 // ---------------------------------------------------------------------------
 // Configuration (applications.toml)
 // ---------------------------------------------------------------------------
@@ -469,6 +473,54 @@ fn save_recent(recent: &RecentFile) {
         let _ = std::fs::create_dir_all(dir);
     }
     if let Ok(text) = toml::to_string(recent) {
+        let _ = std::fs::write(path, text);
+    }
+}
+
+/// The user's starred applications (by name), kept per user next to the
+/// launch history. Names rather than indices so the list survives config
+/// edits; a name that no longer exists is simply not shown.
+#[derive(Default, Serialize, Deserialize)]
+struct FavoritesFile {
+    #[serde(default)]
+    names: Vec<String>,
+}
+
+impl FavoritesFile {
+    fn contains(&self, name: &str) -> bool {
+        self.names.iter().any(|n| n == name)
+    }
+
+    /// Star / unstar; returns the new state.
+    fn toggle(&mut self, name: &str) -> bool {
+        if let Some(pos) = self.names.iter().position(|n| n == name) {
+            self.names.remove(pos);
+            false
+        } else {
+            self.names.push(name.to_owned());
+            true
+        }
+    }
+}
+
+fn favorites_path() -> Option<PathBuf> {
+    cache_dir().map(|d| d.join("favorites.toml"))
+}
+
+fn load_favorites() -> FavoritesFile {
+    favorites_path()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|text| toml::from_str(&text).ok())
+        .unwrap_or_default()
+}
+
+/// Best effort: an unwritable home only costs the stars.
+fn save_favorites(favorites: &FavoritesFile) {
+    let Some(path) = favorites_path() else { return };
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    if let Ok(text) = toml::to_string(favorites) {
         let _ = std::fs::write(path, text);
     }
 }
@@ -1296,6 +1348,8 @@ struct App {
     last_launch: HashMap<usize, f64>,
     /// Launch history (per app name), shown as "Recently used".
     recent: RecentFile,
+    /// Starred applications (per app name): the "Favorites" view / section.
+    favorites: FavoritesFile,
     /// Ids of password-protected categories unlocked this session.
     unlocked: HashSet<String>,
     /// Contents of the password prompt shown for a locked category.
@@ -1344,6 +1398,7 @@ impl App {
             status: None,
             last_launch: HashMap::new(),
             recent: load_recent(),
+            favorites: load_favorites(),
             unlocked: HashSet::new(),
             password_input: String::new(),
             password_wrong: false,
@@ -1380,7 +1435,7 @@ impl App {
                 self.selected = position(selected_name);
                 self.highlighted = position(highlighted_name);
                 if let Some(cat) = &self.active_category {
-                    if !cfg.categories.iter().any(|c| &c.id == cat) {
+                    if cat != FAVORITES_VIEW && !cfg.categories.iter().any(|c| &c.id == cat) {
                         self.active_category = None;
                     }
                 }
@@ -1538,18 +1593,28 @@ impl App {
 }
 
 // ---------------------------------------------------------------------------
-// Application row (shared by the category list and "Recently used")
+// Application row (shared by the category list, "Favorites" and
+// "Recently used")
 // ---------------------------------------------------------------------------
 
-/// Returns the row's frame response and whether Launch was clicked.
+/// What the user clicked inside an application row this frame.
+#[derive(Default)]
+struct RowClicks {
+    launch: bool,
+    /// The ☆ / ★ button: add to / remove from the favorites.
+    star: bool,
+}
+
+/// Returns the row's frame response and what was clicked in it.
 fn app_row(
     ui: &mut egui::Ui,
     app: &AppEntry,
     available: bool,
     cooling: bool,
     highlighted: bool,
-) -> (egui::Response, bool) {
-    let mut clicked = false;
+    favorite: bool,
+) -> (egui::Response, RowClicks) {
+    let mut clicks = RowClicks::default();
     let mut frame = egui::Frame::group(ui.style())
         .corner_radius(6.0)
         .inner_margin(10.0)
@@ -1561,7 +1626,7 @@ fn app_row(
         ui.set_width(ui.available_width());
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
-                ui.set_width(ui.available_width() - 120.0);
+                ui.set_width(ui.available_width() - 156.0);
                 ui.label(egui::RichText::new(&app.name).strong().size(16.0));
                 ui.label(
                     egui::RichText::new(&app.description)
@@ -1603,14 +1668,29 @@ fn app_row(
                                 format!("Not found: {hover}")
                             });
                         if resp.clicked() {
-                            clicked = true;
+                            clicks.launch = true;
                         }
                     });
+                    // Star toggle, left of the Launch button. Always
+                    // enabled: an unavailable tool can still be starred.
+                    let (glyph, hover, color) = if favorite {
+                        ("★", "Remove from favorites", theme::WARNING)
+                    } else {
+                        ("☆", "Add to favorites", theme::text_emphasis(ui.visuals()))
+                    };
+                    let star = egui::Button::new(
+                        egui::RichText::new(glyph).size(20.0).color(color),
+                    )
+                    .frame(false)
+                    .min_size(egui::vec2(28.0, 30.0));
+                    if ui.add(star).on_hover_text(hover).clicked() {
+                        clicks.star = true;
+                    }
                 },
             );
         });
     });
-    (group.response, clicked)
+    (group.response, clicks)
 }
 
 impl eframe::App for App {
@@ -1831,20 +1911,61 @@ impl eframe::App for App {
 
         // -------------------------------------------- keyboard navigation --
         // The filtered list (indices into cfg.apps), in display order.
+        let favorites_view = self.active_category.as_deref() == Some(FAVORITES_VIEW);
+        // In the Favorites view an app listed under several categories
+        // (same name) is shown once, under its first config entry.
+        let mut seen_favorites: Vec<&str> = Vec::new();
         let visible: Vec<usize> = cfg
             .apps
             .iter()
             .enumerate()
             .filter(|(_, a)| {
-                !locked.contains(a.category.as_str())
-                    && self
-                        .active_category
-                        .as_deref()
-                        .map(|c| a.category == c)
-                        .unwrap_or(true)
-                    && a.matches(&self.search)
+                if locked.contains(a.category.as_str()) || !a.matches(&self.search) {
+                    return false;
+                }
+                match self.active_category.as_deref() {
+                    None => true,
+                    Some(FAVORITES_VIEW) => {
+                        if !self.favorites.contains(&a.name)
+                            || seen_favorites.contains(&a.name.as_str())
+                        {
+                            return false;
+                        }
+                        seen_favorites.push(a.name.as_str());
+                        true
+                    }
+                    Some(c) => a.category == c,
+                }
             })
             .map(|(i, _)| i)
+            .collect();
+
+        // The "Favorites" rows shown at the top of the All view (config
+        // order, first entry per name, locked categories hidden). Like the
+        // recent rows below they are dropped from their category group.
+        let mut favorite_rows: Vec<usize> = Vec::new();
+        if self.active_category.is_none() && self.search.is_empty() {
+            let mut seen: Vec<&str> = Vec::new();
+            favorite_rows = cfg
+                .apps
+                .iter()
+                .enumerate()
+                .filter(|(_, a)| {
+                    if locked.contains(a.category.as_str())
+                        || !self.favorites.contains(&a.name)
+                        || seen.contains(&a.name.as_str())
+                    {
+                        return false;
+                    }
+                    seen.push(a.name.as_str());
+                    true
+                })
+                .map(|(i, _)| i)
+                .collect();
+        }
+        let favorite_names: Vec<&str> = favorite_rows
+            .iter()
+            .map(|&i| cfg.apps[i].name.as_str())
             .collect();
 
         // The "Recently used" rows shown at the top of the All view. Apps
@@ -1863,6 +1984,7 @@ impl eframe::App for App {
                 .filter_map(|(i, a)| {
                     if locked.contains(a.category.as_str())
                         || seen.contains(&a.name.as_str())
+                        || favorite_names.contains(&a.name.as_str())
                     {
                         return None;
                     }
@@ -1879,20 +2001,21 @@ impl eframe::App for App {
             .map(|&i| cfg.apps[i].name.as_str())
             .collect();
 
-        // Keyboard order follows the display: recent rows first, then the
-        // category groups (minus the apps already shown as recent).
-        let display_order: Vec<usize> = recent_rows
+        // Keyboard order follows the display: favorite rows, recent rows,
+        // then the category groups (minus the apps already shown above).
+        let display_order: Vec<usize> = favorite_rows
             .iter()
+            .chain(recent_rows.iter())
             .copied()
-            .chain(
-                visible
-                    .iter()
-                    .copied()
-                    .filter(|&i| !recent_names.contains(&cfg.apps[i].name.as_str())),
-            )
+            .chain(visible.iter().copied().filter(|&i| {
+                let name = cfg.apps[i].name.as_str();
+                !favorite_names.contains(&name) && !recent_names.contains(&name)
+            }))
             .collect();
 
         let mut launch_request: Option<usize> = None;
+        // Index of the app whose ☆ / ★ was clicked this frame.
+        let mut star_request: Option<usize> = None;
         if (move_up || move_down) && !display_order.is_empty() {
             let pos = self
                 .highlighted
@@ -1951,6 +2074,27 @@ impl eframe::App for App {
                         {
                             clicked_category = Some(None);
                         }
+                        let favorite_count = cfg
+                            .apps
+                            .iter()
+                            .filter(|a| {
+                                !locked.contains(a.category.as_str())
+                                    && self.favorites.contains(&a.name)
+                            })
+                            .map(|a| a.name.as_str())
+                            .collect::<HashSet<_>>()
+                            .len();
+                        if ui
+                            .selectable_label(
+                                favorites_view,
+                                format!("★ Favorites  ({favorite_count})"),
+                            )
+                            .on_hover_text("Your starred applications (☆ on a row)")
+                            .clicked()
+                        {
+                            clicked_category = Some(Some(FAVORITES_VIEW.to_owned()));
+                        }
+                        ui.add_space(4.0);
                         for cat in &cfg.categories {
                             let count =
                                 cfg.apps.iter().filter(|a| a.category == cat.id).count();
@@ -2214,26 +2358,54 @@ impl eframe::App for App {
             if visible.is_empty() {
                 ui.vertical_centered(|ui| {
                     ui.add_space(24.0);
-                    ui.label(
-                        egui::RichText::new("No application matches").weak().italics(),
-                    );
+                    if favorites_view && self.search.is_empty() {
+                        ui.label(egui::RichText::new("☆").size(40.0).weak());
+                        ui.add_space(8.0);
+                        ui.label(
+                            egui::RichText::new("No favorites yet").strong().size(18.0),
+                        );
+                        ui.add_space(4.0);
+                        ui.label(
+                            egui::RichText::new(
+                                "Click ☆ on any application to add it here",
+                            )
+                            .color(theme::text_emphasis(ui.visuals())),
+                        );
+                    } else {
+                        ui.label(
+                            egui::RichText::new("No application matches")
+                                .weak()
+                                .italics(),
+                        );
+                    }
                 });
                 return;
             }
 
             egui::ScrollArea::vertical().show(ui, |ui| {
-                let group_by_category = self.active_category.is_none();
+                // The Favorites view keeps the category headers too: it is
+                // a slice of the All view rather than one category.
+                let group_by_category = self.active_category.is_none() || favorites_view;
 
-                // ------------------------------------ recently used ----
-                if !recent_rows.is_empty() {
+                // A pinned block above the category groups ("Favorites",
+                // "Recently used"): rows only, no category headers.
+                let pinned_block = |ui: &mut egui::Ui,
+                                        title: &str,
+                                        rows: &[usize],
+                                        selected: &mut Option<usize>,
+                                        launch_request: &mut Option<usize>,
+                                        star_request: &mut Option<usize>| {
+                    if rows.is_empty() {
+                        return;
+                    }
                     ui.add_space(6.0);
                     ui.label(
-                        egui::RichText::new("★ Recently used")
+                        egui::RichText::new(title)
                             .strong()
                             .color(theme::primary_text(ui.visuals())),
                     );
                     ui.add_space(2.0);
-                    for &idx in &recent_rows {
+                    for &idx in rows {
                         let app = &cfg.apps[idx];
                         let available =
                             self.available.get(idx).copied().unwrap_or(false);
@@ -2243,29 +2415,54 @@ impl eframe::App for App {
                             .map(|t| now - t < LAUNCH_COOLDOWN)
                             .unwrap_or(false);
                         let highlighted = self.highlighted == Some(idx);
-                        let (resp, clicked) =
-                            app_row(ui, app, available, cooling, highlighted);
-                        if clicked {
-                            launch_request = Some(idx);
+                        let favorite = self.favorites.contains(&app.name);
+                        let (resp, clicks) =
+                            app_row(ui, app, available, cooling, highlighted, favorite);
+                        if clicks.launch {
+                            *launch_request = Some(idx);
+                        }
+                        if clicks.star {
+                            *star_request = Some(idx);
                         }
                         if highlighted && self.scroll_to_highlight {
                             resp.scroll_to_me(Some(egui::Align::Center));
                         }
                         if ui.rect_contains_pointer(resp.rect) {
-                            self.selected = Some(idx);
+                            *selected = Some(idx);
                         }
                         ui.add_space(6.0);
                     }
                     ui.separator();
-                }
+                };
+                let mut selected = self.selected;
+                pinned_block(
+                    ui,
+                    "★ Favorites",
+                    &favorite_rows,
+                    &mut selected,
+                    &mut launch_request,
+                    &mut star_request,
+                );
+                pinned_block(
+                    ui,
+                    "🕓 Recently used",
+                    &recent_rows,
+                    &mut selected,
+                    &mut launch_request,
+                    &mut star_request,
+                );
+                self.selected = selected;
 
                 let mut last_category: Option<&str> = None;
                 let mut last_section: Option<&str> = None;
                 for idx in visible {
                     let app = &cfg.apps[idx];
-                    // Already shown in "Recently used" above — including any
-                    // same-name entry the config lists in another category.
-                    if recent_names.contains(&app.name.as_str()) {
+                    // Already shown in "Favorites" / "Recently used" above —
+                    // including any same-name entry the config lists in
+                    // another category.
+                    if favorite_names.contains(&app.name.as_str())
+                        || recent_names.contains(&app.name.as_str())
+                    {
                         continue;
                     }
                     if group_by_category && last_category != Some(app.category.as_str())
@@ -2306,10 +2503,14 @@ impl eframe::App for App {
                         .map(|t| now - t < LAUNCH_COOLDOWN)
                         .unwrap_or(false);
                     let highlighted = self.highlighted == Some(idx);
-                    let (resp, clicked) =
-                        app_row(ui, app, available, cooling, highlighted);
-                    if clicked {
+                    let favorite = self.favorites.contains(&app.name);
+                    let (resp, clicks) =
+                        app_row(ui, app, available, cooling, highlighted, favorite);
+                    if clicks.launch {
                         launch_request = Some(idx);
+                    }
+                    if clicks.star {
+                        star_request = Some(idx);
                     }
                     if highlighted && self.scroll_to_highlight {
                         resp.scroll_to_me(Some(egui::Align::Center));
@@ -2325,6 +2526,17 @@ impl eframe::App for App {
 
         if versions_request {
             self.versions = Some(VersionsScan::start(&cfg.library_versions));
+        }
+
+        if let Some(idx) = star_request {
+            let name = cfg.apps[idx].name.clone();
+            let starred = self.favorites.toggle(&name);
+            save_favorites(&self.favorites);
+            self.status = Some(Ok(if starred {
+                format!("★ {name} added to your favorites")
+            } else {
+                format!("☆ {name} removed from your favorites")
+            }));
         }
 
         if let Some(new_cat) = clicked_category {

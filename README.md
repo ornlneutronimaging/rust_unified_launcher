@@ -46,6 +46,13 @@ by a config file instead of hardcoded entries.
   session. Passwords live in plain text in the config, so this is a soft
   gate against casual browsing, not a security boundary.
 
+- **Favorites**: the ☆ button on every row stars an application (★ to
+  unstar). Starred apps are listed in a **★ Favorites** block at the top of
+  the All view and under the **★ Favorites** entry of the sidebar, which
+  keeps the category headers. The list is per user, saved by name in
+  `~/.cache/unified_launcher/favorites.toml` (next to the `recent.toml`
+  launch history), so it survives config edits; a starred app that sits in
+  a locked category stays hidden until the category is unlocked.
 - A top-level `usage_db = "/dir"` records every successful launch as one
   JSON line in `<usage_db>/records/<user>.jsonl` (epoch, local time, user,
   full name, application, category, host, command/url). Best effort on a background
