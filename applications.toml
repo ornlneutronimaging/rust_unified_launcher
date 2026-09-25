@@ -808,12 +808,20 @@ tags = ["avizo", "licenses"]
 # --------------------------------------------------------------------------
 
 [[app]]
-name = "Auto Normalization Monitor at VENUS (beta)"
-description = "Beta version of the VENUS auto normalization monitor (rust_autonormalization_monitor_development, branch beta) — new features under test before they reach the production version."
+name = "CT Reconstruction — NeCTAR (beta, mbirtorch)"
+description = "Beta version of NeCTAR (rust_ct_reconstruction_development, branch mbirtorch): the same white beam and TOF workflows, with the model-based iterative reconstruction running on mbirtorch (PyTorch) instead of MBIRJAX — the whole slice range goes to mbirtorch in one run, which sizes its own GPU bands, so no more job split or memory check. Logs to nectar_beta_<user>.log."
 category = "beta"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor_development/launch_autonormalization_monitor.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autonormalization_monitor_preview.png"
-tags = ["normalization", "venus", "auto", "beta", "development"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ct_reconstruction_development/launch_nectar.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ct_reconstruction_preview.png"
+tags = ["tomography", "nectar", "ct", "reconstruction", "mbirtorch", "torch", "beta", "development"]
+
+[[app]]
+name = "Stripes Removal (tomopy)"
+description = "Try the tomopy stripe-removal algorithms (remove_stripe_sf, Vo's sorting / fitting / large / dead / interpolation, Titarenko) on a few sinograms of a CT projection stack, compare before / cleaned / difference, then clean the whole stack. Also launched from NeCTAR's Remove stripes step."
+category = "beta"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_stripes_removal/launch_stripes_removal.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/stripes_removal_preview.png"
+tags = ["tomography", "sinogram", "stripes", "ring artifact", "tomopy", "hdf5", "tiff", "nectar", "beta"]
 
 [[app]]
 name = "Marimo Notebooks (beta)"
