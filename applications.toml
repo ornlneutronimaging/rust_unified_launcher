@@ -791,6 +791,17 @@ in_terminal = true
 hold_terminal = true
 tags = ["avizo", "licenses"]
 
+# ---- CIS (Computational Instrument Scientist: debugging & support) ----
+
+[[app]]
+name = "Log Browser"
+description = "Browse the shared tool logs (/SNS/VENUS/shared/log) by application and user: full name and login on top, ERROR / WARNING lines colored, search, level and session filters, live follow of a running session."
+category = "restricted"
+section = "CIS"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_log_browser/launch_log_browser.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_log_browser_preview.png"
+tags = ["log", "logs", "debug", "support", "users", "errors", "nectar", "cis"]
+
 # ---- Web links ----
 
 # Deactivated for now (2026-09-01) — EIC utils not usable at the moment.
