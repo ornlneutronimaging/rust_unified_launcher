@@ -706,6 +706,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_au
 tags = ["autoreduction", "check", "verify", "timepix", "mcp", "raw", "compare", "profile", "log"]
 
 [[app]]
+name = "VENUS TPX3 ↔ NeXus Comparator"
+description = "Compare a run's Timepix3 .tpx3 file with its NeXus file: integrated maps side by side with a mirrored ROI and its TOF profile under each image, and a report (file size, format, load time, events, pulses, zero / dead / hot pixels, pixel-by-pixel differences, TOF resolution, undefined values) saved as Markdown / HTML / CSV."
+category = "restricted"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tpx3_nexus_comparator/launch_tpx3_nexus_comparator.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tpx3_nexus_comparator_preview.png"
+tags = ["tpx3", "timepix3", "nexus", "compare", "events", "tof", "dead pixels", "report", "rustpix"]
+
+[[app]]
 name = "MCP Chips Aligner"
 description = "Load an uncorrected Timepix TIFF, interactively align the four MCP chips and export the offsets as a config.py snippet."
 category = "restricted"
