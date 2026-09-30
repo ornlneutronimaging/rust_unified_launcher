@@ -10,7 +10,13 @@
 //! Keyboard driven: the search bar is focused at startup, ↑/↓ move the
 //! selection through the filtered list, Enter launches it, Esc clears the
 //! search (and closes the launcher when the search is already empty).
+//!
+//! Under the filter sits the "Ask" box (`ask` module): type what you want
+//! to do in plain words and the best-matching applications are listed
+//! right under it, with the words that matched. Ranked keyword search with
+//! synonyms and per-app example questions — no language model.
 
+mod ask;
 mod theme;
 mod zoom;
 
@@ -53,6 +59,8 @@ const CONFIG_CHECK_PERIOD: f64 = 1.0;
 const AVAILABILITY_PERIOD: f64 = 5.0;
 /// Number of entries shown in the "Recently used" section.
 const RECENT_SHOWN: usize = 5;
+/// Number of suggestions listed under the Ask box.
+const ASK_SHOWN: usize = 5;
 
 /// Pseudo category id of the sidebar's "Favorites" view (the apps the user
 /// starred). Not a valid `[[category]]` id, so it can never collide.
@@ -81,6 +89,18 @@ struct Config {
     /// in an unlocked password-protected category (see `LibraryVersions`).
     #[serde(default)]
     library_versions: LibraryVersions,
+    /// `[ask]`: tuning of the Ask box (see the `ask` module).
+    #[serde(default)]
+    ask: AskConfig,
+}
+
+/// `[ask]`: groups of words the Ask box treats as equivalent, e.g.
+/// `["tiff", "tif", "image", "images"]`. A question word hits an entry
+/// through any word of its group (scoring one point less than a direct hit).
+#[derive(Deserialize, Default)]
+struct AskConfig {
+    #[serde(default)]
+    synonyms: Vec<Vec<String>>,
 }
 
 fn default_title() -> String {
@@ -166,9 +186,15 @@ struct AppEntry {
     /// used by the egui portals).
     #[serde(default)]
     clear_fontconfig: bool,
-    /// Extra keywords matched by the search box.
+    /// Extra keywords matched by the search box (and the Ask box).
     #[serde(default)]
     tags: Vec<String>,
+    /// Questions this tool answers, in the user's words ("did my sample
+    /// move during the experiment"). Only the Ask box reads them: each word
+    /// counts like a tag, and a question whose every word hits the same
+    /// phrase gets a bonus.
+    #[serde(default)]
+    ask_examples: Vec<String>,
     /// The tool opens (or runs inside) a web browser. The Firefox profile
     /// lives on shared storage, so a browser running on another analysis
     /// machine makes such a launch fail: the profile lock is checked before
@@ -1343,6 +1369,15 @@ struct App {
     search: String,
     /// Give the search bar keyboard focus on the next frame (set at startup).
     focus_search: bool,
+    /// Contents of the Ask box.
+    ask: String,
+    /// Position (in the suggestion list) of the keyboard selection under
+    /// the Ask box; ↑/↓ move it while the box has focus, Enter launches it.
+    ask_cursor: usize,
+    /// Per-app searchable words for the Ask box, parallel to `cfg.apps`
+    /// (rebuilt on reload).
+    ask_index: Vec<ask::Haystack>,
+    ask_synonyms: ask::Synonyms,
     status: Option<Result<String, String>>,
     /// Per-app time (egui clock) of the last launch, for the cooldown.
     last_launch: HashMap<usize, f64>,
@@ -1395,6 +1430,10 @@ impl App {
             active_category: None,
             search: String::new(),
             focus_search: true,
+            ask: String::new(),
+            ask_cursor: 0,
+            ask_index: Vec::new(),
+            ask_synonyms: ask::Synonyms::default(),
             status: None,
             last_launch: HashMap::new(),
             recent: load_recent(),
@@ -1429,6 +1468,14 @@ impl App {
             Ok(cfg) => {
                 self.available = cfg.apps.iter().map(|a| a.available()).collect();
                 self.config_warnings = validate_config(cfg);
+                self.ask_synonyms = ask::Synonyms::new(&cfg.ask.synonyms);
+                self.ask_index = cfg
+                    .apps
+                    .iter()
+                    .map(|a| {
+                        ask::Haystack::new(&a.name, &a.tags, &a.ask_examples, &a.description)
+                    })
+                    .collect();
                 let position = |name: Option<String>| {
                     name.and_then(|n| cfg.apps.iter().position(|a| a.name == n))
                 };
@@ -1443,6 +1490,7 @@ impl App {
             Err(_) => {
                 self.available.clear();
                 self.config_warnings.clear();
+                self.ask_index.clear();
                 self.selected = None;
                 self.highlighted = None;
             }
@@ -1711,8 +1759,16 @@ impl eframe::App for App {
                 i.consume_key(egui::Modifiers::NONE, egui::Key::Escape),
             )
         });
+        // The Ask box owns ↑/↓/Enter/Esc while it has focus and holds a
+        // question; the filtered list gets them otherwise.
+        let ask_field_id = egui::Id::new("ask_field");
+        let ask_active =
+            !self.ask.trim().is_empty() && ctx.memory(|m| m.has_focus(ask_field_id));
         if escape {
-            if self.search.is_empty() {
+            if ask_active {
+                self.ask.clear();
+                self.ask_cursor = 0;
+            } else if self.search.is_empty() {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             } else {
                 self.search.clear();
@@ -1909,6 +1965,188 @@ impl eframe::App for App {
                 });
             });
 
+        // ------------------------------------------------- ask box ---------
+        // "What do you want to do?" — a forgiving ranked search (synonyms,
+        // word stems, per-app example questions; see the `ask` module) whose
+        // best hits are listed right under the box with the words that
+        // matched. Hover a hit to preview it, click it to reveal it in the
+        // list, or launch it straight from the row / with Enter.
+        let mut ask_launch: Option<usize> = None;
+        let mut ask_reveal: Option<usize> = None;
+        let suggestions: Vec<ask::Suggestion> = if self.ask.trim().is_empty() {
+            Vec::new()
+        } else {
+            // One row per application name: an app listed under several
+            // categories keeps its first (unlocked) entry only.
+            let mut seen: Vec<&str> = Vec::new();
+            ask::rank(
+                &self.ask,
+                self.ask_index
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, _)| !locked.contains(cfg.apps[*i].category.as_str())),
+                &self.ask_synonyms,
+            )
+            .into_iter()
+            .filter(|s| {
+                let name = cfg.apps[s.index].name.as_str();
+                if seen.contains(&name) {
+                    return false;
+                }
+                seen.push(name);
+                true
+            })
+            .take(ASK_SHOWN)
+            .collect()
+        };
+        if ask_active && !suggestions.is_empty() {
+            self.ask_cursor = self.ask_cursor.min(suggestions.len() - 1);
+            if move_down {
+                self.ask_cursor = (self.ask_cursor + 1).min(suggestions.len() - 1);
+                self.selected = Some(suggestions[self.ask_cursor].index);
+            }
+            if move_up {
+                self.ask_cursor = self.ask_cursor.saturating_sub(1);
+                self.selected = Some(suggestions[self.ask_cursor].index);
+            }
+            if enter {
+                ask_launch = Some(suggestions[self.ask_cursor].index);
+            }
+        }
+        egui::TopBottomPanel::top("ask_bar")
+            .frame(
+                egui::Frame::new()
+                    .fill(theme::surface_weak(&ctx.style().visuals))
+                    .inner_margin(egui::Margin::symmetric(16, 8)),
+            )
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("💬").size(16.0));
+                    ui.label(
+                        egui::RichText::new("Ask")
+                            .strong()
+                            .color(theme::primary_text(ui.visuals())),
+                    );
+                    ui.with_layout(
+                        egui::Layout::right_to_left(egui::Align::Center),
+                        |ui| {
+                            if !self.ask.is_empty()
+                                && ui
+                                    .small_button("✖")
+                                    .on_hover_text("Clear the question (Esc)")
+                                    .clicked()
+                            {
+                                self.ask.clear();
+                                self.ask_cursor = 0;
+                            }
+                            let response = ui.add(
+                                egui::TextEdit::singleline(&mut self.ask)
+                                    .id(ask_field_id)
+                                    .hint_text(
+                                        "Describe what you want to do, e.g. \"tiff integrated images over a stack of runs\"",
+                                    )
+                                    .desired_width(ui.available_width()),
+                            );
+                            if response.changed() {
+                                self.ask_cursor = 0;
+                            }
+                        },
+                    );
+                });
+                if self.ask.trim().is_empty() {
+                    return;
+                }
+                ui.add_space(4.0);
+                if suggestions.is_empty() {
+                    ui.label(
+                        egui::RichText::new(
+                            "Nothing matches — try naming the data (tiff, nexus, runs…) \
+                             or the task (normalize, reconstruct, align, plot…)",
+                        )
+                        .italics()
+                        .color(theme::text_emphasis(ui.visuals())),
+                    );
+                    return;
+                }
+                ui.label(
+                    egui::RichText::new(if suggestions.len() == 1 {
+                        "Best match:".to_owned()
+                    } else {
+                        format!(
+                            "Best {} matches — arrow keys select, Enter launches:",
+                            suggestions.len()
+                        )
+                    })
+                    .small()
+                    .color(theme::text_emphasis(ui.visuals())),
+                );
+                for (pos, s) in suggestions.iter().enumerate() {
+                    let app = &cfg.apps[s.index];
+                    let available = self.available.get(s.index).copied().unwrap_or(false);
+                    let cooling = self
+                        .last_launch
+                        .get(&s.index)
+                        .map(|t| now - t < LAUNCH_COOLDOWN)
+                        .unwrap_or(false);
+                    let category = cfg
+                        .categories
+                        .iter()
+                        .find(|c| c.id == app.category)
+                        .map(|c| c.name.as_str())
+                        .unwrap_or(app.category.as_str());
+                    ui.horizontal(|ui| {
+                        let row = ui
+                            .selectable_label(
+                                pos == self.ask_cursor,
+                                egui::RichText::new(&app.name).strong(),
+                            )
+                            .on_hover_text(&app.description);
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "{category} · matches: {}",
+                                s.matched.join(", ")
+                            ))
+                            .small()
+                            .color(theme::text_emphasis(ui.visuals())),
+                        );
+                        ui.with_layout(
+                            egui::Layout::right_to_left(egui::Align::Center),
+                            |ui| {
+                                let verb = if app.url.is_some() { "Open" } else { "Launch" };
+                                if ui
+                                    .add_enabled(
+                                        available && !cooling,
+                                        // Compact: five of these sit above
+                                        // the list, so no full-size button.
+                                        theme::primary_button(verb)
+                                            .min_size(egui::vec2(80.0, 22.0)),
+                                    )
+                                    .clicked()
+                                {
+                                    ask_launch = Some(s.index);
+                                }
+                            },
+                        );
+                        if row.hovered() {
+                            self.selected = Some(s.index);
+                        }
+                        if row.clicked() {
+                            self.ask_cursor = pos;
+                            ask_reveal = Some(s.index);
+                        }
+                    });
+                }
+            });
+        if let Some(idx) = ask_reveal {
+            // Show the app where it lives: full list, its category, row
+            // highlighted and scrolled into view, preview panel on it.
+            self.search.clear();
+            self.active_category = None;
+            self.highlighted = Some(idx);
+            self.selected = Some(idx);
+            self.scroll_to_highlight = true;
+        }
+
         // -------------------------------------------- keyboard navigation --
         // The filtered list (indices into cfg.apps), in display order.
         let favorites_view = self.active_category.as_deref() == Some(FAVORITES_VIEW);
@@ -2016,7 +2254,10 @@ impl eframe::App for App {
         let mut launch_request: Option<usize> = None;
         // Index of the app whose ☆ / ★ was clicked this frame.
         let mut star_request: Option<usize> = None;
-        if (move_up || move_down) && !display_order.is_empty() {
+        if let Some(idx) = ask_launch {
+            launch_request = Some(idx);
+        }
+        if (move_up || move_down) && !ask_active && !display_order.is_empty() {
             let pos = self
                 .highlighted
                 .and_then(|h| display_order.iter().position(|&i| i == h));
@@ -2029,7 +2270,7 @@ impl eframe::App for App {
             self.selected = self.highlighted;
             self.scroll_to_highlight = true;
         }
-        if enter {
+        if enter && !ask_active {
             // Enter launches the keyboard selection; with none, the first
             // match — but only while searching, so a stray Enter on the
             // full list never launches something by accident.

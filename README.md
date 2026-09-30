@@ -46,6 +46,18 @@ by a config file instead of hardcoded entries.
   session. Passwords live in plain text in the config, so this is a soft
   gate against casual browsing, not a security boundary.
 
+- **Ask box** (under the filter): type what you want to do in plain words
+  ("tiff integrated images over a stack of runs") and the best-matching
+  applications are listed under the box with the words that matched.
+  Hover a hit to preview it, click it to reveal it in the list, launch it
+  from the row or with ↑/↓ + Enter; Esc clears the question. It is a ranked
+  keyword search, not an AI: every word (stemmed, stop words dropped, the
+  `[ask] synonyms` groups of `applications.toml` expanded) is looked up in
+  each app's name, tags, `ask_examples` and description, with name / tag /
+  example hits weighing more than description hits. When a question lands
+  on the wrong tool, add the user's wording to the right tool's
+  `ask_examples` (a phrase that covers every word of the question gets a
+  bonus), or extend a synonym group — no recompile needed.
 - **Favorites**: the ☆ button on every row stars an application (★ to
   unstar). Starred apps are listed in a **★ Favorites** block at the top of
   the All view and under the **★ Favorites** entry of the sidebar, which

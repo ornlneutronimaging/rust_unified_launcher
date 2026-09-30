@@ -34,6 +34,9 @@
 #                                            # button. Unset: guessed from the
 #                                            # command/tags; false: never
 #   tags        = ["extra", "search", "words"]
+#   ask_examples = ["did my sample move"]    # questions this tool answers, in
+#                                            # the user's words; read only by
+#                                            # the Ask box (see [ask] below)
 #
 # A [[category]] may declare passwords:
 #   passwords = ["word1", "word2"]           # category is locked (🔒) until one
@@ -50,6 +53,41 @@ subtitle = "All VENUS / MARS imaging applications in one place"
 # category, host). Viewed with the "Portal Usage Monitor" (restricted
 # category). Comment out to disable recording.
 usage_db = "/SNS/VENUS/shared/software/usage_db"
+
+# The Ask box (under the filter): "describe what you want to do" in plain
+# words, and the best-matching applications are listed under it. Plain
+# keyword ranking, no AI: every word of the question (stemmed, stop words
+# dropped) is looked up in each app's name, tags, ask_examples and
+# description; name/tag/example hits weigh more than description hits.
+# `synonyms` lists groups of words treated as equivalent, so "tiff" also
+# hits an entry that only says "images". When a question lands on the wrong
+# tool, add the user's wording to that tool's `ask_examples` (best) or
+# `tags`, or extend a group here.
+[ask]
+synonyms = [
+    ["tiff", "tif", "image", "images", "picture", "frame", "frames"],
+    ["stack", "series", "runs", "run", "batch", "sequence", "folder", "folders"],
+    ["nexus", "nxs", "h5", "hdf5", "hdf"],
+    ["timepix", "tpx3", "tpx", "event", "events"],
+    ["integrated", "integrate", "sum", "summed", "projection"],
+    ["drift", "move", "moved", "motion", "shift", "shifted", "wobble", "stability"],
+    ["align", "alignment", "register", "registration", "offset"],
+    ["normalize", "normalization", "normalise", "normalisation", "ob", "open beam", "dark field", "df"],
+    ["ct", "tomography", "tomographic", "reconstruction", "reconstruct", "recon", "sinogram"],
+    ["tof", "time of flight", "wavelength", "lambda", "energy", "bragg", "bragg edge"],
+    ["roi", "region", "crop", "cropping"],
+    ["profile", "line profile", "lineout", "cross section"],
+    ["histogram", "statistics", "stats"],
+    ["outlier", "hot pixel", "dead pixel", "gamma", "despeckle", "denoise", "clean", "noise"],
+    ["compare", "comparison", "difference", "diff", "overlay", "blink"],
+    ["export", "save", "convert", "conversion"],
+    ["notebook", "jupyter", "marimo"],
+    ["plot", "graph", "chart", "curve"],
+    ["metadata", "pv", "log", "logs", "temperature", "sensor"],
+    ["resolution", "sharpness", "focus", "blur", "mtf", "psf"],
+    ["radiograph", "radiography", "white beam", "2d"],
+    ["monitor", "usage", "who", "when"],
+]
 
 # Library versions (admin view). Once a password-protected category is
 # unlocked, a "Show library versions" switch at the top of its list shows,
@@ -238,6 +276,7 @@ category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_sample_drift_viewer/launch_sample_drift_viewer.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_sample_drift_viewer_preview.png"
 tags = ["drift", "timepix", "runs", "integrated", "slider", "profile", "edge", "shift", "stability", "motion", "pv", "temperature"]
+ask_examples = ["tiff integrated images over a stack of runs", "did my sample move during the experiment", "follow a line profile across many runs", "plot the sample temperature against the shift of each run"]
 
 [[app]]
 name = "Outlier Removal"
