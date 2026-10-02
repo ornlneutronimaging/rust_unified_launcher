@@ -109,6 +109,10 @@ name = "Marimo notebooks (general tools & dedicated IPTS)"
 python = "/SNS/VENUS/shared/software/git/marimo_notebooks/.pixi/envs/default/bin/python"
 
 [[library_versions.environment]]
+name = "Marimo notebooks (beta)"
+python = "/SNS/VENUS/shared/software/git/marimo_notebooks_development/.pixi/envs/default/bin/python"
+
+[[library_versions.environment]]
 name = "Jupyter data-reduction notebooks"
 python = "/SNS/VENUS/shared/software/git/python_notebooks_data_reduction/.pixi/envs/default/bin/python"
 
@@ -877,6 +881,16 @@ category = "beta"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_stripes_removal/launch_stripes_removal.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/stripes_removal_preview.png"
 tags = ["tomography", "sinogram", "stripes", "ring artifact", "tomopy", "hdf5", "tiff", "nectar", "beta"]
+
+[[app]]
+name = "Marimo Notebooks (beta)"
+description = "Beta version of the general-tools marimo portal — same portal as production (pick a notebook and an IPTS, runs in app mode), but serving the notebooks of the marimo_notebooks_development checkout."
+category = "beta"
+command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal_general_tools_beta"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/marimo_portal_general_tools_preview.png"
+clear_fontconfig = true
+tags = ["marimo", "beta", "development", "notebooks"]
+requires_browser = true
 
 [[app]]
 name = "TOF Polarization"
