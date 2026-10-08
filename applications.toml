@@ -291,6 +291,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ou
 tags = ["outlier", "outliers", "imagej", "fiji", "median", "hot pixel", "dead pixel", "gamma", "despeckle", "noise", "clean", "histogram", "qhy", "ccd", "timepix", "filter"]
 
 [[app]]
+name = "Sample Masker"
+description = "Mask part of a sample on a stack of TIFF images: draw rectangles, ellipses, circles, polygons or paint with a brush on the integrated (or any single) image, combine / subtract / invert the selections or let a threshold (value, % of range, percentile, Otsu) build the mask automatically, then export the stack with the masked pixels replaced by NaN, 0 or a value (same file names, bit depth kept when possible, spectra files copied). Run numbers, browse or drag-and-drop as input. The recipe is a small mask config (HDF5 or JSON) saved from the UI, usable as the default config and applied without a window (--headless --config) to other data sets or from a workflow (a threshold is re-evaluated on each data set, regions stay fixed)."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_sample_masker/launch_sample_masker.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_sample_masker_preview.png"
+tags = ["mask", "masking", "sample", "roi", "region", "rectangle", "ellipse", "circle", "polygon", "brush", "threshold", "otsu", "nan", "invert", "stack", "tiff", "export", "headless", "workflow"]
+
+[[app]]
 name = "Run Registration"
 description = "Register a series of Timepix runs against a reference run: sub-pixel (x, y) offset of every run measured on the integrated images, checked by eye (slider / play, difference-vs-reference view, offsets table and plot, manual override), then applied to every frame and exported to a new folder that keeps the original run folder names. The registered runs can be opened straight in the Sample Drift Viewer. Whole-pixel mode, headless mode."
 category = "rust"
@@ -344,6 +352,14 @@ category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autonormalization_monitor_preview.png"
 tags = ["normalization", "venus", "auto"]
+
+[[app]]
+name = "rustpix Monitor"
+description = "Watch an IPTS (or a list of runs) for Timepix3 .tpx3 runs and histogram each new one with the rustpix command line into a folder of TIFFs (one per TOF bin + summed image + spectra), mirroring the images/ tree under a base output folder."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_rustpix_monitor/launch_rustpix_monitor.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rustpix_monitor_preview.png"
+tags = ["rustpix", "tpx3", "timepix3", "monitor", "auto", "tiff", "histogram", "venus"]
 
 [[app]]
 name = "BM3D ORNL GUI"
@@ -586,6 +602,15 @@ tags = ["bragg edge", "fitting", "web", "santisteban"]
 requires_browser = true
 
 # ---- Normalization ----
+
+[[app]]
+name = "rustpix Monitor"
+description = "Watch an IPTS (or a list of runs) for Timepix3 .tpx3 runs and histogram each new one with the rustpix command line into a folder of TIFFs (one per TOF bin + summed image + spectra), mirroring the images/ tree under a base output folder."
+category = "venus"
+section = "Normalization"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_rustpix_monitor/launch_rustpix_monitor.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rustpix_monitor_preview.png"
+tags = ["rustpix", "tpx3", "timepix3", "monitor", "auto", "tiff", "histogram", "venus"]
 
 [[app]]
 name = "Auto Normalization Monitor at VENUS"
@@ -873,6 +898,14 @@ category = "beta"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ct_reconstruction_development/launch_nectar.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ct_reconstruction_preview.png"
 tags = ["tomography", "nectar", "ct", "reconstruction", "mbirtorch", "torch", "beta", "development"]
+
+[[app]]
+name = "Dehydration / Hydration Correction (beta, mbirtorch hsnt)"
+description = "Beta version of the dehydration/hydration tool (rust_dehydration_hydration_development, branch mbirtorch_hsnt): same GUI, but the correction is the new maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (branch hsnt, run through its command line in the git/mbirtorch_hsnt pixi environment on the GPU) instead of the native NMF port — rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
+category = "beta"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration_development/launch_dehydration_hydration.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
+tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson", "beta", "development"]
 
 [[app]]
 name = "Stripes Removal (tomopy)"
