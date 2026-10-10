@@ -399,6 +399,15 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydra
 tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson", "beta", "development"]
 
 [[app]]
+name = "Fourier Explorer"
+description = "Learn the 2-D Fourier transform of an image: the image on the left (Lenna, synthetic patterns or any PNG / JPEG / TIFF), its spectrum on the right; apply low-pass / high-pass / band-pass filters (ideal, Butterworth, Gaussian), draw regions on the spectrum to remove or keep, probe a pixel to see the wave it stands for, and watch the image rebuilt from what is left."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_fourier_explorer/launch_rust_fourier_explorer.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_fourier_explorer_preview.png"
+tags = ["fourier", "fft", "spectrum", "frequency", "filter", "low-pass", "high-pass", "learning", "teaching", "lenna"]
+ask_examples = ["how does the fourier transform of an image work", "what does a low pass filter do to an image", "remove stripes in frequency space", "see the spectrum of an image"]
+
+[[app]]
 name = "Workflow Runner"
 description = "Job manager over a table of runs: NeuNorm normalization, crop regions, and dehydration/hydration — with auto-run and per-step logs."
 category = "rust"
