@@ -2351,12 +2351,47 @@ impl eframe::App for App {
 
         // ---------------------------------------------- category sidebar ---
         let mut clicked_category: Option<Option<String>> = None;
+        // One sidebar row per category; `true` when it was clicked.
+        let active_category = self.active_category.as_deref();
+        let category_row = |ui: &mut egui::Ui, cat: &Category| -> bool {
+            let count = cfg.apps.iter().filter(|a| a.category == cat.id).count();
+            let is_active = active_category == Some(cat.id.as_str());
+            let label = if locked.contains(cat.id.as_str()) {
+                format!("🔒 {}", cat.name)
+            } else {
+                format!("{}  ({count})", cat.name)
+            };
+            ui.selectable_label(is_active, label).clicked()
+        };
+        // Categories reserved to listed users (`users = [...]`, e.g. CIS)
+        // are pinned to the bottom of the sidebar under a separator, apart
+        // from the regular list that scrolls above them.
+        let (regular, reserved): (Vec<&Category>, Vec<&Category>) =
+            cfg.categories.iter().partition(|c| c.users.is_empty());
         egui::SidePanel::left("categories")
             .exact_width(CATEGORY_PANEL_WIDTH)
             .resizable(false)
             .show(ctx, |ui| {
+                if !reserved.is_empty() {
+                    egui::TopBottomPanel::bottom("reserved_categories")
+                        .frame(egui::Frame::new())
+                        .show_separator_line(false)
+                        .show_inside(ui, |ui| {
+                            ui.separator();
+                            ui.add_space(6.0);
+                            for cat in &reserved {
+                                if category_row(ui, cat) {
+                                    clicked_category = Some(Some(cat.id.clone()));
+                                }
+                            }
+                            ui.add_space(10.0);
+                        });
+                }
                 // Many categories (or the large-text mode) can outgrow a
                 // short window; scroll instead of clipping the last ones.
+                egui::CentralPanel::default()
+                    .frame(egui::Frame::new())
+                    .show_inside(ui, |ui| {
                 egui::ScrollArea::vertical()
                     .id_salt("categories_scroll")
                     .auto_shrink([false, false])
@@ -2399,20 +2434,12 @@ impl eframe::App for App {
                             clicked_category = Some(Some(FAVORITES_VIEW.to_owned()));
                         }
                         ui.add_space(4.0);
-                        for cat in &cfg.categories {
-                            let count =
-                                cfg.apps.iter().filter(|a| a.category == cat.id).count();
-                            let is_active =
-                                self.active_category.as_deref() == Some(cat.id.as_str());
-                            let label = if locked.contains(cat.id.as_str()) {
-                                format!("🔒 {}", cat.name)
-                            } else {
-                                format!("{}  ({count})", cat.name)
-                            };
-                            if ui.selectable_label(is_active, label).clicked() {
+                        for cat in &regular {
+                            if category_row(ui, cat) {
                                 clicked_category = Some(Some(cat.id.clone()));
                             }
                         }
+                    });
                     });
             });
 
