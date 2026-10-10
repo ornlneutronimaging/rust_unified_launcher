@@ -45,6 +45,12 @@ by a config file instead of hardcoded entries.
   view, the search results and "Recently used". The unlock lasts for the
   session. Passwords live in plain text in the config, so this is a soft
   gate against casual browsing, not a security boundary.
+- A `[[category]]` with `users = ["login1", "login2"]` exists only for
+  those logins (`$USER`, case-insensitive): for everyone else it is dropped
+  when the config loads, together with its applications, so it never
+  appears in the sidebar, the All view, search, the Ask box, favorites or
+  "Recently used". The **CIS** category (support and monitoring tools) is
+  reserved this way.
 
 - **Ask box** (under the filter): type what you want to do in plain words
   ("tiff integrated images over a stack of runs") and the best-matching

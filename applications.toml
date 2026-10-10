@@ -44,14 +44,20 @@
 #                                            # matter); its apps stay hidden
 #                                            # from All / search / Recently
 #                                            # used until unlocked
+# or be reserved for some users:
+#   users = ["login1", "login2"]             # category shown to these logins
+#                                            # ($USER) only; for everyone else
+#                                            # it and its apps do not exist
+#                                            # (no sidebar entry, no search,
+#                                            # no Ask hit, no 🔒 prompt)
 
 title = "Neutron Imaging Launcher"
 subtitle = "All VENUS / MARS imaging applications in one place"
 
 # Shared usage database: every launch appends one JSON line to
 # <usage_db>/records/<user>.jsonl (user, local date/time, application,
-# category, host). Viewed with the "Portal Usage Monitor" (restricted
-# category). Comment out to disable recording.
+# category, host). Viewed with the "Portal Usage Monitor" (CIS category).
+# Comment out to disable recording.
 usage_db = "/SNS/VENUS/shared/software/usage_db"
 
 # The Ask box (under the filter): "describe what you want to do" in plain
@@ -181,6 +187,13 @@ passwords = ["venus", "mars"]
 id = "beta"
 name = "Beta"
 passwords = ["psg"]
+
+# Computational Instrument Scientist: support & monitoring tools, visible to
+# the listed logins only.
+[[category]]
+id = "cis"
+name = "CIS"
+users = ["j35"]
 
 # --------------------------------------------------------------------------
 # Rust applications
@@ -376,6 +389,14 @@ category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
 tags = ["denoise", "nmf", "hyperspectral", "mbirjax"]
+
+[[app]]
+name = "Dehydration / Hydration Correction (beta, mbirtorch hsnt)"
+description = "Beta version of the dehydration/hydration tool (rust_dehydration_hydration_development, branch mbirtorch_hsnt): same GUI, but the correction is the new maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (branch hsnt, run through its command line in the git/mbirtorch_hsnt pixi environment on the GPU) instead of the native NMF port — rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration_development/launch_dehydration_hydration.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
+tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson", "beta", "development"]
 
 [[app]]
 name = "Workflow Runner"
@@ -868,8 +889,7 @@ tags = ["log", "logs", "debug", "support", "users", "errors", "nectar", "cis"]
 [[app]]
 name = "Portal Usage Monitor"
 description = "Who launched which application, when and from which computer: searchable log of every launch made through this portal (shared usage database) and a bar chart of launches per application, user or computer."
-category = "restricted"
-section = "CIS"
+category = "cis"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/portal_usage_monitor/launch_usage_monitor.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/portal_usage_monitor_preview.png"
 tags = ["usage", "statistics", "monitor", "database", "log", "launches", "web", "browser", "dashboard", "cis"]
@@ -898,14 +918,6 @@ category = "beta"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ct_reconstruction_development/launch_nectar.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ct_reconstruction_preview.png"
 tags = ["tomography", "nectar", "ct", "reconstruction", "mbirtorch", "torch", "beta", "development"]
-
-[[app]]
-name = "Dehydration / Hydration Correction (beta, mbirtorch hsnt)"
-description = "Beta version of the dehydration/hydration tool (rust_dehydration_hydration_development, branch mbirtorch_hsnt): same GUI, but the correction is the new maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (branch hsnt, run through its command line in the git/mbirtorch_hsnt pixi environment on the GPU) instead of the native NMF port — rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
-category = "beta"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration_development/launch_dehydration_hydration.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
-tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson", "beta", "development"]
 
 [[app]]
 name = "Stripes Removal (tomopy)"

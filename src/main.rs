@@ -120,6 +120,66 @@ struct Category {
     /// All view, the search results and "Recently used".
     #[serde(default)]
     passwords: Vec<String>,
+    /// Non-empty: the category exists only for these login names (compared
+    /// case-insensitively with `$USER`). For anyone else it is dropped at
+    /// load time together with its apps, so it never shows up anywhere —
+    /// sidebar, All view, search, Ask box, favorites, "Recently used".
+    #[serde(default)]
+    users: Vec<String>,
+}
+
+impl Config {
+    /// Drop the categories reserved for other users (`users = [...]`), and
+    /// the apps that belong to them.
+    fn restrict_to_user(&mut self, user: &str) {
+        let hidden: Vec<String> = self
+            .categories
+            .iter()
+            .filter(|c| !c.users.is_empty() && !c.users.iter().any(|u| u.eq_ignore_ascii_case(user)))
+            .map(|c| c.id.clone())
+            .collect();
+        if hidden.is_empty() {
+            return;
+        }
+        self.categories.retain(|c| !hidden.contains(&c.id));
+        self.apps.retain(|a| !hidden.contains(&a.category));
+    }
+}
+
+#[cfg(test)]
+mod user_categories_tests {
+    use super::*;
+
+    const TOML: &str = r#"
+[[category]]
+id = "rust"
+name = "Rust"
+[[category]]
+id = "cis"
+name = "CIS"
+users = ["j35"]
+[[app]]
+name = "Viewer"
+category = "rust"
+command = ["/bin/true"]
+[[app]]
+name = "Usage Monitor"
+category = "cis"
+command = ["/bin/true"]
+"#;
+
+    #[test]
+    fn a_users_category_is_kept_for_its_users_only() {
+        let mut cfg: Config = toml::from_str(TOML).unwrap();
+        cfg.restrict_to_user("J35");
+        assert_eq!(cfg.categories.len(), 2);
+        assert_eq!(cfg.apps.len(), 2);
+
+        let mut cfg: Config = toml::from_str(TOML).unwrap();
+        cfg.restrict_to_user("someone");
+        assert_eq!(cfg.categories.iter().map(|c| c.id.as_str()).collect::<Vec<_>>(), ["rust"]);
+        assert_eq!(cfg.apps.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), ["Viewer"]);
+    }
 }
 
 /// `[library_versions]`: the admin "Show library versions" switch. Lists,
@@ -445,7 +505,10 @@ fn config_path() -> PathBuf {
 fn load_config(path: &Path) -> Result<Config, String> {
     let text = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read {}: {e}", path.display()))?;
-    toml::from_str(&text).map_err(|e| format!("Bad TOML in {}: {e}", path.display()))
+    let mut cfg: Config =
+        toml::from_str(&text).map_err(|e| format!("Bad TOML in {}: {e}", path.display()))?;
+    cfg.restrict_to_user(&current_user());
+    Ok(cfg)
 }
 
 fn config_mtime(path: &Path) -> Option<std::time::SystemTime> {
