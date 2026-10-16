@@ -106,7 +106,7 @@ synonyms = [
 packages = [
     "NeuNorm", "neutronbraggedge", "marimo", "jupyterlab", "notebook",
     "numpy", "scipy", "scikit-image", "matplotlib", "h5py", "astropy",
-    "tifffile", "tomopy", "algotom", "svmbir", "mbirjax", "bm3dornl",
+    "tifffile", "tomopy", "algotom", "svmbir", "mbirjax", "bm3dornl", "nrad",
     "imars3d",
 ]
 
@@ -921,6 +921,14 @@ ask_examples = ["how does the fourier transform of an image work", "what does a 
 # Beta (password protected — see the [[category]] block above)
 # Development versions under test before they replace the production ones.
 # --------------------------------------------------------------------------
+
+[[app]]
+name = "TIFF Viewer (beta)"
+description = "Beta version of the TIFF Viewer (rust_tiff_viewer_development, branch beta): the same viewer as the production one, with the improvements under test before they reach it. Shares the Recent… list and the light/dark preference with the production viewer."
+category = "beta"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tiff_viewer_development/launch_rust_tiff_viewer.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tiff_viewer_preview.png"
+tags = ["images", "viewer", "tiff", "beta", "development"]
 
 [[app]]
 name = "CT Reconstruction — NeCTAR (beta, mbirtorch)"
