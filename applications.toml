@@ -193,7 +193,7 @@ passwords = ["psg"]
 [[category]]
 id = "cis"
 name = "CIS"
-users = ["j35"]
+users = ["j35", "h2b"]
 
 # --------------------------------------------------------------------------
 # Rust applications
@@ -753,6 +753,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ip
 tags = ["ipts", "report", "runs", "open beam", "dark current", "proton charge", "bandwidth", "nexus", "html", "csv"]
 
 [[app]]
+name = "Experiment Run Logbook"
+description = "Live logbook of an IPTS: the runs appear as they are acquired (the acquiring one on top); type notes about the measurement while it runs, attach pictures (drop / paste), draw sketches or annotate a photo. Shared in <IPTS>/shared/logbook, reload and edit any time, export as PDF or Markdown."
+category = "experiment"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_run_logbook/launch_run_logbook.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/run_logbook_preview.png"
+tags = ["logbook", "notebook", "notes", "live", "monitor", "runs", "ipts", "comments", "pictures", "sketch", "pdf", "venus"]
+
+[[app]]
 name = "Find IPTS from Run Number"
 description = "Prompt for a VENUS run number and report which IPTS contains it."
 category = "experiment"
@@ -906,6 +914,15 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_fo
 tags = ["fourier", "fft", "spectrum", "frequency", "filter", "low-pass", "high-pass", "learning", "teaching", "lenna"]
 ask_examples = ["how does the fourier transform of an image work", "what does a low pass filter do to an image", "remove stripes in frequency space", "see the spectrum of an image"]
 
+[[app]]
+name = "Silhouette & Number of Clusters"
+description = "Learn how the silhouette score (Rousseeuw, 1987) picks the number of clusters k of a segmentation: tab 1 plays with synthetic blobs (mean silhouette vs k, cluster scatter, silhouette plot, a/b/s of any point); tab 2 runs a real UMAP segmentation of a TOF stack — by default the VENUS Mona Lisa (IPTS-38814, Run 30127): a copper plate whose picture is invisible in transmission and only encoded in the Bragg-edge spectra — pixel spectra → UMAP → k-means for k = 2…k max → silhouette curve, embedding, segmentation map over the image (the face appears), mean spectrum per cluster vs λ; CSV / TIFF export."
+category = "cis"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_silhouette_demo/launch_silhouette_demo.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_silhouette_demo_preview.png"
+tags = ["silhouette", "clusters", "k-means", "kmeans", "umap", "segmentation", "number of clusters", "learning", "teaching", "mona lisa", "spectra", "bragg edge"]
+ask_examples = ["how many clusters should I use", "what is the silhouette score", "how does umap segmentation work", "segment a tof stack by spectrum"]
+
 # ---- Web links ----
 
 # Deactivated for now (2026-09-01) — EIC utils not usable at the moment.
@@ -923,12 +940,20 @@ ask_examples = ["how does the fourier transform of an image work", "what does a 
 # --------------------------------------------------------------------------
 
 [[app]]
-name = "TIFF Viewer (beta)"
-description = "Beta version of the TIFF Viewer (rust_tiff_viewer_development, branch beta): the same viewer as the production one, with the improvements under test before they reach it. Shares the Recent… list and the light/dark preference with the production viewer."
+name = "Normalization (VENUS & MARS) — beta"
+description = "Desktop GUI of the three normalization notebooks (NeuNorm numerics, same outputs): VENUS white beam (iKon-XL / QHY411 radiographs, run numbers or files, crop), VENUS TOF (Timepix tpx1 / tpx3 stacks: run folders, data information window with the quality check, integrated image with crop / background / ROI tools, TOF binning, fill of unmeasured pixels, nrad denoising with before / after histograms, stack statistics) and MARS white beam (folder scan into acquisition configurations, OB / DC matching, manual OB / DC, image tables with one switch per image size, rebin, gamma filter). Session configurations (HDF5) shared with the notebooks, the autonormalization monitor and the workflow runner."
 category = "beta"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tiff_viewer_development/launch_rust_tiff_viewer.sh"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_normalization/launch_normalization.sh"]
+tags = ["normalization", "normalize", "ob", "open beam", "dark current", "tof", "white beam", "venus", "mars", "neunorm", "nrad", "ccd", "timepix", "beta"]
+ask_examples = ["normalize my runs", "normalize a tof stack", "normalize mars radiographs", "divide the sample by the open beam"]
+
+[[app]]
+name = "Neutron Image Viewer (beta)"
+description = "Beta version of the Neutron Image Viewer — formerly the TIFF Viewer (rust_neutron_image_viewer_development, branch beta): the same viewer as the production one, with the improvements under test before they reach it — menu bar, brush tool, joint histogram, saved configurations (HDF5), NeXus / HDF5 arrays loaded as stacks, the run's NeXus file opened in the NeXus Viewer, contrast from the colorbar. Shares the Recent… list and the light/dark preference with the production viewer."
+category = "beta"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_neutron_image_viewer_development/launch_rust_neutron_image_viewer.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tiff_viewer_preview.png"
-tags = ["images", "viewer", "tiff", "beta", "development"]
+tags = ["images", "viewer", "tiff", "fits", "nexus", "hdf5", "venus", "mars", "beta", "development"]
 
 [[app]]
 name = "CT Reconstruction — NeCTAR (beta, mbirtorch)"
