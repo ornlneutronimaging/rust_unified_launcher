@@ -200,12 +200,12 @@ users = ["j35", "h2b"]
 # --------------------------------------------------------------------------
 
 [[app]]
-name = "TIFF Viewer"
-description = "Browse and inspect folders of TIFF images from a measurement."
+name = "Neutron Image Viewer"
+description = "Formerly the TIFF Viewer: browse image stacks of VENUS and MARS (folders of TIFF / FITS images, multi-page / SciTIFF files, NeXus / HDF5 arrays) with regions of interest and their profiles vs file index / TOF / lambda / energy — menu bar, brush tool, joint histogram of two stacks, saved configurations (HDF5), the run's NeXus file in the NeXus Viewer, contrast from the colorbar."
 category = "rust"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tiff_viewer/launch_rust_tiff_viewer.sh"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tiff_viewer/launch_rust_neutron_image_viewer.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tiff_viewer_preview.png"
-tags = ["images", "viewer"]
+tags = ["images", "viewer", "tiff", "fits", "nexus", "hdf5", "venus", "mars"]
 
 [[app]]
 name = "McStas Output Viewer"
@@ -946,14 +946,6 @@ category = "beta"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_normalization/launch_normalization.sh"]
 tags = ["normalization", "normalize", "ob", "open beam", "dark current", "tof", "white beam", "venus", "mars", "neunorm", "nrad", "ccd", "timepix", "beta"]
 ask_examples = ["normalize my runs", "normalize a tof stack", "normalize mars radiographs", "divide the sample by the open beam"]
-
-[[app]]
-name = "Neutron Image Viewer (beta)"
-description = "Beta version of the Neutron Image Viewer — formerly the TIFF Viewer (rust_neutron_image_viewer_development, branch beta): the same viewer as the production one, with the improvements under test before they reach it — menu bar, brush tool, joint histogram, saved configurations (HDF5), NeXus / HDF5 arrays loaded as stacks, the run's NeXus file opened in the NeXus Viewer, contrast from the colorbar. Shares the Recent… list and the light/dark preference with the production viewer."
-category = "beta"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_neutron_image_viewer_development/launch_rust_neutron_image_viewer.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tiff_viewer_preview.png"
-tags = ["images", "viewer", "tiff", "fits", "nexus", "hdf5", "venus", "mars", "beta", "development"]
 
 [[app]]
 name = "CT Reconstruction — NeCTAR (beta, mbirtorch)"
