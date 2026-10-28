@@ -50,9 +50,25 @@
 #                                            # it and its apps do not exist
 #                                            # (no sidebar entry, no search,
 #                                            # no Ask hit, no 🔒 prompt)
+#
+# A [[notice]] is an announcement shown to every user under the header, with
+# a "Got it" button that hides it for that user (change the id to show an
+# edited text again to those who dismissed it):
+#   [[notice]]
+#   id      = "unique-key"
+#   text    = "What users should know."
+#   until   = "2026-12-31"                   # optional: hidden for everyone
+#                                            # after that day
+#   warning = true                           # optional: ⚠ orange instead of
+#                                            # ℹ blue
 
 title = "Neutron Imaging Launcher"
 subtitle = "All VENUS / MARS imaging applications in one place"
+
+[[notice]]
+id = "tiff-viewer-renamed-2026-10"
+text = "The TIFF Viewer is now the Neutron Image Viewer (Rust tools category): same viewer, new name — with a menu bar, a brush tool, a joint histogram of two stacks, saved configurations and NeXus / HDF5 arrays loaded as stacks. Scripts calling launch_rust_tiff_viewer.sh keep working."
+until = "2027-01-31"
 
 # Shared usage database: every launch appends one JSON line to
 # <usage_db>/records/<user>.jsonl (user, local date/time, application,
@@ -205,7 +221,8 @@ description = "Formerly the TIFF Viewer: browse image stacks of VENUS and MARS (
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tiff_viewer/launch_rust_neutron_image_viewer.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tiff_viewer_preview.png"
-tags = ["images", "viewer", "tiff", "fits", "nexus", "hdf5", "venus", "mars"]
+tags = ["images", "viewer", "tiff viewer", "tiff", "fits", "nexus", "hdf5", "venus", "mars"]
+ask_examples = ["look at my images", "open the tiff viewer", "draw a region on a stack and plot its profile"]
 
 [[app]]
 name = "McStas Output Viewer"

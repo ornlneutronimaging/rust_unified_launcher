@@ -92,6 +92,37 @@ struct Config {
     /// `[ask]`: tuning of the Ask box (see the `ask` module).
     #[serde(default)]
     ask: AskConfig,
+    /// `[[notice]]`: announcements shown under the header until the user
+    /// dismisses them (per user) or their `until` date has passed.
+    #[serde(default, rename = "notice")]
+    notices: Vec<Notice>,
+}
+
+/// An announcement to every user — a renamed tool, a planned outage… Shown
+/// as an ℹ (or ⚠ when `warning`) banner under the header until "Got it" is
+/// pressed, which hides it for that user only (see `DismissedFile`); `until`
+/// (`YYYY-MM-DD`) hides it for everyone after that day.
+#[derive(Deserialize, Clone)]
+struct Notice {
+    /// Stable key of the dismissal: change it to show an edited notice again
+    /// to those who dismissed the previous text.
+    id: String,
+    text: String,
+    #[serde(default)]
+    until: Option<String>,
+    #[serde(default)]
+    warning: bool,
+}
+
+impl Notice {
+    /// Still to be shown on `today` (`YYYY-MM-DD`; the ISO form compares as
+    /// text). A malformed `until` never hides a notice.
+    fn active_on(&self, today: &str) -> bool {
+        match &self.until {
+            Some(until) if until.len() == 10 && today.len() == 10 => today <= until.as_str(),
+            _ => true,
+        }
+    }
 }
 
 /// `[ask]`: groups of words the Ask box treats as equivalent, e.g.
@@ -612,6 +643,48 @@ fn save_favorites(favorites: &FavoritesFile) {
     if let Ok(text) = toml::to_string(favorites) {
         let _ = std::fs::write(path, text);
     }
+}
+
+/// The `[[notice]]` ids this user pressed "Got it" on, kept next to the
+/// favorites so a dismissed announcement stays hidden across sessions.
+#[derive(Default, Serialize, Deserialize)]
+struct DismissedFile {
+    #[serde(default)]
+    ids: Vec<String>,
+}
+
+fn dismissed_path() -> Option<PathBuf> {
+    cache_dir().map(|d| d.join("dismissed_notices.toml"))
+}
+
+fn load_dismissed() -> DismissedFile {
+    dismissed_path()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|text| toml::from_str(&text).ok())
+        .unwrap_or_default()
+}
+
+/// Best effort: an unwritable home only brings the notice back next time.
+fn save_dismissed(dismissed: &DismissedFile) {
+    let Some(path) = dismissed_path() else { return };
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    if let Ok(text) = toml::to_string(dismissed) {
+        let _ = std::fs::write(path, text);
+    }
+}
+
+/// Today's local date as `YYYY-MM-DD` (via `date`, like `local_timestamp`);
+/// empty when unavailable, which keeps every dated notice visible.
+fn local_date() -> String {
+    Command::new("date")
+        .arg("+%Y-%m-%d")
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
+        .filter(|t| t.len() == 10)
+        .unwrap_or_default()
 }
 
 // ---------------------------------------------------------------------------
@@ -1346,6 +1419,24 @@ fn local_timestamp() -> String {
 }
 
 #[cfg(test)]
+mod notice_tests {
+    use super::*;
+
+    fn notice(until: Option<&str>) -> Notice {
+        Notice { id: "n".into(), text: String::new(), until: until.map(str::to_owned), warning: false }
+    }
+
+    #[test]
+    fn until_is_inclusive_and_malformed_dates_never_hide() {
+        assert!(notice(None).active_on("2026-10-28"));
+        assert!(notice(Some("2026-10-28")).active_on("2026-10-28"));
+        assert!(!notice(Some("2026-10-27")).active_on("2026-10-28"));
+        assert!(notice(Some("soon")).active_on("2026-10-28"));
+        assert!(notice(Some("2026-10-27")).active_on(""));
+    }
+}
+
+#[cfg(test)]
 mod profile_reset_tests {
     use super::*;
 
@@ -1417,6 +1508,10 @@ struct App {
     /// Mtime of the config when it was last (re)loaded, for auto-reload.
     config_mtime: Option<std::time::SystemTime>,
     config_warnings: Vec<String>,
+    /// Notices this user dismissed with "Got it".
+    dismissed: DismissedFile,
+    /// Today (`YYYY-MM-DD`), read once at start-up for the notices' `until`.
+    today: String,
     logo: Option<egui::TextureHandle>,
     available: Vec<bool>,
     previews: HashMap<usize, Preview>,
@@ -1484,6 +1579,8 @@ impl App {
             config: Err(String::new()),
             config_mtime: None,
             config_warnings: Vec::new(),
+            dismissed: load_dismissed(),
+            today: local_date(),
             logo: None,
             available: Vec::new(),
             previews: HashMap::new(),
@@ -1982,6 +2079,65 @@ impl eframe::App for App {
             .filter(|c| !c.passwords.is_empty() && !self.unlocked.contains(&c.id))
             .map(|c| c.id.as_str())
             .collect();
+
+        // ---------------------------------------------------- notices ------
+        // Announcements from the config, each with its own "Got it".
+        let notices: Vec<Notice> = cfg
+            .notices
+            .iter()
+            .filter(|n| n.active_on(&self.today) && !self.dismissed.ids.contains(&n.id))
+            .cloned()
+            .collect();
+        if !notices.is_empty() {
+            egui::TopBottomPanel::top("notices")
+                .frame(
+                    egui::Frame::new()
+                        .fill(ctx.style().visuals.panel_fill)
+                        .inner_margin(egui::Margin::symmetric(16, 6)),
+                )
+                .show(ctx, |ui| {
+                    for notice in &notices {
+                        let (icon, color) = if notice.warning {
+                            ("⚠", theme::WARNING)
+                        } else {
+                            ("ℹ", theme::INFO)
+                        };
+                        egui::Frame::new()
+                            .fill(color.gamma_multiply(0.12))
+                            .stroke(egui::Stroke::new(1.0, color))
+                            .corner_radius(4.0)
+                            .inner_margin(egui::Margin::symmetric(10, 6))
+                            .show(ui, |ui| {
+                                ui.set_width(ui.available_width());
+                                ui.horizontal(|ui| {
+                                    ui.label(egui::RichText::new(icon).color(color).size(18.0));
+                                    ui.with_layout(
+                                        egui::Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            if ui
+                                                .button("Got it")
+                                                .on_hover_text("Hide this notice (for you only)")
+                                                .clicked()
+                                            {
+                                                self.dismissed.ids.push(notice.id.clone());
+                                                save_dismissed(&self.dismissed);
+                                            }
+                                            ui.with_layout(
+                                                egui::Layout::left_to_right(egui::Align::Center),
+                                                |ui| {
+                                                    ui.add(
+                                                        egui::Label::new(&notice.text).wrap(),
+                                                    );
+                                                },
+                                            );
+                                        },
+                                    );
+                                });
+                            });
+                        ui.add_space(4.0);
+                    }
+                });
+        }
 
         // ------------------------------------------------- search bar ------
         // Full-width bar under the header; the list below narrows live as the
