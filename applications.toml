@@ -770,12 +770,12 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ip
 tags = ["ipts", "report", "runs", "open beam", "dark current", "proton charge", "bandwidth", "nexus", "html", "csv"]
 
 [[app]]
-name = "Experiment Run Logbook"
-description = "Live logbook of an IPTS: the runs appear as they are acquired (the acquiring one on top); type notes about the measurement while it runs, attach pictures (drop / paste), draw sketches or annotate a photo. Shared in <IPTS>/shared/logbook, reload and edit any time, export as PDF or Markdown."
+name = "Experiment Logbook"
+description = "Live logbook of a VENUS or MARS IPTS: the runs appear as they are acquired (the acquiring one on top); type notes about the measurement while it runs, attach pictures (drop / paste / screenshot), draw sketches or annotate a photo, tag runs with colour labels. Shared in <IPTS>/shared/logbook, reload and edit any time, export as PDF / Markdown or send by email."
 category = "experiment"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_run_logbook/launch_run_logbook.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/run_logbook_preview.png"
-tags = ["logbook", "notebook", "notes", "live", "monitor", "runs", "ipts", "comments", "pictures", "sketch", "pdf", "venus"]
+tags = ["logbook", "notebook", "notes", "live", "monitor", "runs", "ipts", "comments", "pictures", "sketch", "pdf", "email", "venus", "mars"]
 
 [[app]]
 name = "Find IPTS from Run Number"
