@@ -321,6 +321,23 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ou
 tags = ["outlier", "outliers", "imagej", "fiji", "median", "hot pixel", "dead pixel", "gamma", "despeckle", "noise", "clean", "histogram", "qhy", "ccd", "timepix", "filter"]
 
 [[app]]
+name = "Metadata Overlapping Images"
+description = "Rust port of the metadata_overlapping_images notebook: write the metadata of a series of images (temperature, motor position, exposure, elapsed time… read from the TIFF tags) on the images, with a scale bar and a live graph of the metadata (current image marked), flip through / play the series, and export the annotated images as PNG files, a TIFF stack and a video (Motion-JPEG AVI, MP4 when ffmpeg is available, GIF) plus the metadata table. Same toolbox as the notebook to clean the metadata string and apply a linear operation; overlays dragged with the mouse; settings saved as JSON and reusable headless (--headless --settings). Folder, files, drag-and-drop or run numbers (VENUS / MARS) as input."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_metadata_overlapping_images/launch_metadata_overlapping_images.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_metadata_overlapping_images_preview.png"
+tags = ["metadata", "overlay", "overlapping", "annotate", "text", "scale bar", "graph", "video", "avi", "mp4", "gif", "movie", "animation", "temperature", "furnace", "time", "tiff tags", "epics", "ccd", "mars", "venus", "export", "headless"]
+
+[[app]]
+name = "Stack Tools"
+description = "The file / stack manipulation notebooks as one application: Combine N by N (groups of N consecutive images → add / mean / geometric mean / median, spectra file binned along), Combine selected (many images → one), Combine folders (N folders → one, image by image), Deal (<prefix>_<rest> files into one folder per prefix), Extract evenly spaced (1 file every N, review / replace the kept images, frame-to-frame difference), Rename (new naming schema). TIFF and FITS; run numbers, browse or drag-and-drop; the list of files that will be written is shown before anything is written; metadata carried over; nothing ever deleted. Headless mode for scripts."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_stack_tools/launch_stack_tools.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_stack_tools_preview.png"
+tags = ["combine", "combine images", "n by n", "combine folders", "deal", "extract", "evenly spaced", "rename", "rename files", "merge", "sum", "add", "mean", "median", "geometric mean", "spectra", "tiff", "fits", "notebook", "stack", "files", "headless"]
+ask_examples = ["combine my images 2 by 2", "sum two runs together", "keep one image every 10", "rename my files"]
+
+[[app]]
 name = "Sample Masker"
 description = "Mask part of a sample on a stack of TIFF images: draw rectangles, ellipses, circles, polygons or paint with a brush on the integrated (or any single) image, combine / subtract / invert the selections or let a threshold (value, % of range, percentile, Otsu) build the mask automatically, then export the stack with the masked pixels replaced by NaN, 0 or a value (same file names, bit depth kept when possible, spectra files copied). Run numbers, browse or drag-and-drop as input. The recipe is a small mask config (HDF5 or JSON) saved from the UI, usable as the default config and applied without a window (--headless --config) to other data sets or from a workflow (a threshold is re-evaluated on each data set, regions stay fixed)."
 category = "rust"
@@ -479,7 +496,9 @@ requires_browser = true
 name = "Jupyter Data Reduction"
 description = "Launch the Jupyter data-reduction notebooks (pixi environment)."
 category = "jupyter"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/scripts/start_jupyter_data_reduction_pixi"]
+# A Python script (#!/usr/bin/env python): run with python3, not bash — bash
+# read its first line "import sys" as ImageMagick's import and hung.
+command = ["/usr/bin/python3", "/SNS/VENUS/shared/software/scripts/start_jupyter_data_reduction_pixi"]
 in_terminal = true
 clear_fontconfig = true
 requires_browser = true
@@ -861,6 +880,19 @@ tags = ["report", "dashboard", "monitoring", "resources", "cpu", "memory", "orph
 requires_browser = true
 
 [[app]]
+name = "Application Launch Tests"
+description = "Web dashboard that test-launches every application of this portal on a headless display (window came up? headless tasks OK?) and shows a green check or a red cross per application, with a screenshot and the log of each."
+category = "restricted"
+section = "System tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_app_tester/launch_app_tester_dashboard.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_app_tester_preview.png"
+in_terminal = true
+hold_terminal = true
+requires_browser = true
+tags = ["test", "tests", "launch", "smoke", "health", "check", "dashboard", "green", "red", "broken", "regression"]
+ask_examples = ["do all the applications still start", "which applications are broken", "test every tool"]
+
+[[app]]
 name = "Resource Usage per User"
 description = "CPU / memory per user on every analysis machine from the process table; flags ORPHAN users who still own processes (marimo, jupyter) after their session was closed."
 category = "restricted"
@@ -921,6 +953,18 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/portal_usage_monitor/lau
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/portal_usage_monitor_preview.png"
 tags = ["usage", "statistics", "monitor", "database", "log", "launches", "web", "browser", "dashboard", "cis"]
 requires_browser = true
+
+[[app]]
+name = "Application Launch Tests"
+description = "Web dashboard that test-launches every application of this portal on a headless display (window came up? headless tasks OK?) and shows a green check or a red cross per application, with a screenshot and the log of each; run everything, re-run the failed ones or a single application."
+category = "cis"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_app_tester/launch_app_tester_dashboard.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_app_tester_preview.png"
+in_terminal = true
+hold_terminal = true
+requires_browser = true
+tags = ["test", "tests", "launch", "smoke", "health", "check", "dashboard", "green", "red", "broken", "regression", "cis"]
+ask_examples = ["do all the applications still start", "which applications are broken", "test every tool"]
 
 [[app]]
 name = "Fourier Explorer"
