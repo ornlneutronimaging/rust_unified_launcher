@@ -322,7 +322,7 @@ tags = ["outlier", "outliers", "imagej", "fiji", "median", "hot pixel", "dead pi
 
 [[app]]
 name = "Metadata Overlapping Images"
-description = "Rust port of the metadata_overlapping_images notebook: write the metadata of a series of images (temperature, motor position, exposure, elapsed time… read from the TIFF tags) on the images, with a scale bar and a live graph of the metadata (current image marked), flip through / play the series, and export the annotated images as PNG files, a TIFF stack and a video (Motion-JPEG AVI, MP4 when ffmpeg is available, GIF) plus the metadata table. Same toolbox as the notebook to clean the metadata string and apply a linear operation; overlays dragged with the mouse; settings saved as JSON and reusable headless (--headless --settings). Folder, files, drag-and-drop or run numbers (VENUS / MARS) as input."
+description = "Rust port of the metadata_overlapping_images notebook: write the metadata of a series of images (temperature, motor position, exposure, elapsed time… read from the TIFF tags) on the images, with a scale bar and a live graph of the metadata (current image marked), flip through / play the series, and export the annotated images as PNG files, a TIFF stack and a video (Motion-JPEG AVI, MP4 when ffmpeg is available, GIF) plus the metadata table. Same toolbox as the notebook to clean the metadata string and apply a linear operation; overlays dragged with the mouse; interactive colorbar (drag its ends / middle, wheel, double-click) and colormaps; settings saved as JSON and reusable headless (--headless --settings). Folder, files, drag-and-drop, run numbers (VENUS / MARS) or the 🕘 Recent menu as input; illustrated Help in a window of its own."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_metadata_overlapping_images/launch_metadata_overlapping_images.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_metadata_overlapping_images_preview.png"
@@ -558,13 +558,6 @@ description = "Nereids GUI (pixi environment)."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_nereids"]
 in_terminal = true
-
-[[app]]
-name = "Orion Studio"
-description = "Orion Studio application."
-category = "python"
-command = ["/SNS/VENUS/shared/software/bin/OrionStudio/OrionStudio"]
-workdir = "/SNS/VENUS/shared/software/bin/OrionStudio"
 
 # --------------------------------------------------------------------------
 # Web applications
