@@ -234,11 +234,11 @@ tags = ["mcstas", "mccode", "simulation", "monitor", "psd", "viewer", "colormap"
 
 [[app]]
 name = "Cylindrical Geometry Correction"
-description = "Flatten the cylindrical modulation of normalized radiographs (white beam tab) or TOF stacks (TOF tab): rotate, crop, detect the cylinder, estimate μ, correct to a uniform thickness, export + config."
+description = "Flatten the cylindrical modulation of normalized radiographs (white beam tab) or TOF stacks (TOF tab): rotate, crop, detect the cylinder, estimate μ, correct to a uniform thickness, export + config. The ? button opens the instructions in their own window: one illustrated page per step, from what the correction does to the export and the command line."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_cylindrical_geometry_correction/launch_cylindrical_geometry_correction.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_cylindrical_geometry_correction_preview.png"
-tags = ["cylinder", "cylindrical", "geometry", "correction", "chord", "attenuation", "mu", "beer-lambert", "white beam", "time of flight", "tof", "notebook"]
+tags = ["cylinder", "cylindrical", "geometry", "correction", "chord", "attenuation", "mu", "beer-lambert", "white beam", "time of flight", "tof", "notebook", "instructions", "help", "tutorial"]
 
 [[app]]
 name = "TOF Profile Viewer and Bin Maker"
