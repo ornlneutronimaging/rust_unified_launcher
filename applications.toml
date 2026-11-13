@@ -418,19 +418,11 @@ tags = ["denoise"]
 
 [[app]]
 name = "Dehydration / Hydration Correction"
-description = "Denoise a stack of neutron images with the NMF dehydrate/rehydrate algorithm and export the corrected stack."
-category = "rust"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
-tags = ["denoise", "nmf", "hyperspectral", "mbirjax"]
-
-[[app]]
-name = "Dehydration / Hydration Correction (beta, mbirtorch hsnt)"
-description = "Beta version of the dehydration/hydration tool (rust_dehydration_hydration_development, branch mbirtorch_hsnt): same GUI, but the correction is the new maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (branch hsnt, run through its command line in the git/mbirtorch_hsnt pixi environment on the GPU) instead of the native NMF port — rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
+description = "Denoise a stack of neutron images with the maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (run on the GPU in the git/mbirtorch_hsnt pixi environment): rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
 category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration_development/launch_dehydration_hydration.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
-tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson", "beta", "development"]
+tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson"]
 
 [[app]]
 name = "Workflow Runner"
@@ -723,12 +715,12 @@ tags = ["venus", "shutter", "bragg", "timepix"]
 
 [[app]]
 name = "Dehydration / Hydration Correction"
-description = "Denoise a stack of neutron images with the NMF dehydrate/rehydrate algorithm and export the corrected stack."
+description = "Denoise a stack of neutron images with the maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (run on the GPU in the git/mbirtorch_hsnt pixi environment): rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
 category = "venus"
 section = "General tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration_development/launch_dehydration_hydration.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
-tags = ["denoise", "nmf", "hyperspectral", "mbirjax"]
+tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson"]
 
 [[app]]
 name = "Hyperspectral Masker"
