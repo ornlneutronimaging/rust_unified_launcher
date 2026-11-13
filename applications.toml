@@ -969,6 +969,15 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_si
 tags = ["silhouette", "clusters", "k-means", "kmeans", "umap", "segmentation", "number of clusters", "learning", "teaching", "mona lisa", "spectra", "bragg edge"]
 ask_examples = ["how many clusters should I use", "what is the silhouette score", "how does umap segmentation work", "segment a tof stack by spectrum"]
 
+[[app]]
+name = "Chip Ratio Corrector"
+description = "One Timepix chip sits at a level offset from the three others (seen on IPTS-37891): load the TIFF stack (normalized or raw), draw a background ROI on a good chip (reference) and one on the bad chip (target); the ratio of their means multiplies the bad chip (its quadrant, the ROI only, or a custom rectangle; one ratio for the stack or one per frame) over every frame. Before / after images side by side with the same display range, the per-frame means of both ROIs (target before and after) and the line profile across the chips on one plot, export of the corrected stack as float32 TIFF with a JSON report; the setup (ROIs, region, mode) can be saved and replayed headless with --apply --setup."
+category = "cis"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_chip_ratio_corrector/launch_chip_ratio_corrector.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_chip_ratio_corrector_preview.png"
+tags = ["chip", "chips", "timepix", "mcp", "offset", "ratio", "level", "quadrant", "background", "roi", "correction", "normalized", "tof", "cis"]
+ask_examples = ["one chip is brighter than the others", "fix a chip offset", "level the chips of a timepix stack", "correct a bad chip with a ratio"]
+
 # ---- Web links ----
 
 # Deactivated for now (2026-09-01) — EIC utils not usable at the moment.
