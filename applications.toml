@@ -420,7 +420,7 @@ tags = ["denoise"]
 name = "Dehydration / Hydration Correction"
 description = "Denoise a stack of neutron images with the maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (run on the GPU in the git/mbirtorch_hsnt pixi environment): rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
 category = "rust"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration_development/launch_dehydration_hydration.sh"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
 tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson"]
 
@@ -718,7 +718,7 @@ name = "Dehydration / Hydration Correction"
 description = "Denoise a stack of neutron images with the maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (run on the GPU in the git/mbirtorch_hsnt pixi environment): rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
 category = "venus"
 section = "General tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration_development/launch_dehydration_hydration.sh"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
 tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson"]
 
@@ -1009,6 +1009,14 @@ category = "beta"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ct_reconstruction_development/launch_nectar.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ct_reconstruction_preview.png"
 tags = ["tomography", "nectar", "ct", "reconstruction", "mbirtorch", "torch", "beta", "development"]
+
+[[app]]
+name = "Dehydration / Hydration Correction (beta)"
+description = "Beta version of the dehydration/hydration tool (rust_dehydration_hydration_development, branch mbirtorch_hsnt): the production tool — maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package — plus the changes under test before they are merged into production. Logs to dehydration_hydration_beta_<user>.log."
+category = "beta"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration_development/launch_dehydration_hydration.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
+tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson", "beta", "development"]
 
 [[app]]
 name = "Stripes Removal (tomopy)"
