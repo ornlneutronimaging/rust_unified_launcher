@@ -132,6 +132,20 @@ impl Notice {
 struct AskConfig {
     #[serde(default)]
     synonyms: Vec<Vec<String>>,
+    /// Name of the application that turns a description into a whole
+    /// workflow (the Tool Advisor). When it names an entry the user can
+    /// see, the Ask row ends with a button that launches it — with
+    /// `--ask <the question typed>` when there is one — and the suggestions
+    /// offer it too. Unset (or unknown name): no button.
+    #[serde(default)]
+    advisor: Option<String>,
+    /// Text of that button.
+    #[serde(default = "default_advisor_label")]
+    advisor_label: String,
+}
+
+fn default_advisor_label() -> String {
+    "💡 Guide me".to_owned()
 }
 
 fn default_title() -> String {
@@ -318,7 +332,9 @@ impl AppEntry {
 
     /// Spawn the app detached. Returns the child (watched for a few seconds
     /// to surface immediate failures) and the log file capturing its output.
-    fn launch(&self) -> Result<(Child, Option<PathBuf>), String> {
+    /// `extra` arguments are appended to the command (ignored by `url`
+    /// entries): the advisor gets the question typed in the Ask box.
+    fn launch_with(&self, extra: &[String]) -> Result<(Child, Option<PathBuf>), String> {
         if self.command.is_empty() && self.url.is_none() {
             return Err(format!("{}: no command or url configured", self.name));
         }
@@ -336,7 +352,9 @@ impl AppEntry {
             })?;
             vec![opener, url.clone()]
         } else {
-            self.command.clone()
+            let mut argv = self.command.clone();
+            argv.extend(extra.iter().cloned());
+            argv
         };
         if self.in_terminal {
             if let Some((term, term_args)) = find_terminal() {
@@ -2192,6 +2210,14 @@ impl eframe::App for App {
         // list, or launch it straight from the row / with Enter.
         let mut ask_launch: Option<usize> = None;
         let mut ask_reveal: Option<usize> = None;
+        // The advisor entry (`[ask] advisor`), when this user can see it;
+        // `ask_advisor` = its button was clicked this frame.
+        let advisor: Option<usize> = cfg.ask.advisor.as_deref().and_then(|name| {
+            cfg.apps
+                .iter()
+                .position(|a| a.name == name && !locked.contains(a.category.as_str()))
+        });
+        let mut ask_advisor = false;
         let suggestions: Vec<ask::Suggestion> = if self.ask.trim().is_empty() {
             Vec::new()
         } else {
@@ -2249,6 +2275,32 @@ impl eframe::App for App {
                     ui.with_layout(
                         egui::Layout::right_to_left(egui::Align::Center),
                         |ui| {
+                            if let Some(idx) = advisor {
+                                let tip = if self.ask.trim().is_empty() {
+                                    format!(
+                                        "Not sure which application to use? Open the {}: \
+                                         give your IPTS, describe what you want to do, \
+                                         and get the applications to use, step by step",
+                                        cfg.apps[idx].name
+                                    )
+                                } else {
+                                    format!(
+                                        "Open the {} on this question: the whole \
+                                         workflow, step by step, for your IPTS",
+                                        cfg.apps[idx].name
+                                    )
+                                };
+                                if ui
+                                    .add(
+                                        theme::primary_button(cfg.ask.advisor_label.as_str())
+                                            .min_size(egui::vec2(110.0, 22.0)),
+                                    )
+                                    .on_hover_text(tip)
+                                    .clicked()
+                                {
+                                    ask_advisor = true;
+                                }
+                            }
                             if !self.ask.is_empty()
                                 && ui
                                     .small_button("✖")
@@ -2285,6 +2337,17 @@ impl eframe::App for App {
                         .italics()
                         .color(theme::text_emphasis(ui.visuals())),
                     );
+                    if let Some(idx) = advisor {
+                        if ui
+                            .link(format!(
+                                "…or describe it in the {}, which suggests a whole workflow",
+                                cfg.apps[idx].name
+                            ))
+                            .clicked()
+                        {
+                            ask_advisor = true;
+                        }
+                    }
                     return;
                 }
                 ui.label(
@@ -2354,6 +2417,17 @@ impl eframe::App for App {
                             ask_reveal = Some(s.index);
                         }
                     });
+                }
+                if let Some(idx) = advisor {
+                    if ui
+                        .link(format!(
+                            "Need the whole workflow, step by step? Open this question in the {}",
+                            cfg.apps[idx].name
+                        ))
+                        .clicked()
+                    {
+                        ask_advisor = true;
+                    }
                 }
             });
         if let Some(idx) = ask_reveal {
@@ -2476,6 +2550,15 @@ impl eframe::App for App {
         if let Some(idx) = ask_launch {
             launch_request = Some(idx);
         }
+        // The advisor starts on the question typed in the Ask box.
+        let mut advisor_args: Vec<String> = Vec::new();
+        if let (true, Some(idx)) = (ask_advisor, advisor) {
+            launch_request = Some(idx);
+            let question = self.ask.trim();
+            if !question.is_empty() {
+                advisor_args = vec!["--ask".to_owned(), question.to_owned()];
+            }
+        }
         if (move_up || move_down) && !ask_active && !display_order.is_empty() {
             let pos = self
                 .highlighted
@@ -2519,28 +2602,38 @@ impl eframe::App for App {
             };
             ui.selectable_label(is_active, label).clicked()
         };
-        // Categories reserved to listed users (`users = [...]`, e.g. CIS)
-        // are pinned to the bottom of the sidebar under a separator, apart
-        // from the regular list that scrolls above them.
-        let (regular, reserved): (Vec<&Category>, Vec<&Category>) =
-            cfg.categories.iter().partition(|c| c.users.is_empty());
+        // The bottom of the sidebar is pinned, apart from the regular list
+        // that scrolls above it: first the password-protected categories
+        // (`passwords = [...]`, e.g. Restricted and Beta) in a sub-section
+        // of their own, then — under another separator — the categories
+        // reserved to listed users (`users = [...]`, e.g. CIS).
+        let (reserved, open): (Vec<&Category>, Vec<&Category>) =
+            cfg.categories.iter().partition(|c| !c.users.is_empty());
+        let (protected, regular): (Vec<&Category>, Vec<&Category>) =
+            open.into_iter().partition(|c| !c.passwords.is_empty());
         egui::SidePanel::left("categories")
             .exact_width(CATEGORY_PANEL_WIDTH)
             .resizable(false)
             .show(ctx, |ui| {
-                if !reserved.is_empty() {
+                if !reserved.is_empty() || !protected.is_empty() {
                     egui::TopBottomPanel::bottom("reserved_categories")
                         .frame(egui::Frame::new())
                         .show_separator_line(false)
                         .show_inside(ui, |ui| {
-                            ui.separator();
-                            ui.add_space(6.0);
-                            for cat in &reserved {
-                                if category_row(ui, cat) {
-                                    clicked_category = Some(Some(cat.id.clone()));
+                            for group in [&protected, &reserved] {
+                                if group.is_empty() {
+                                    continue;
                                 }
+                                ui.separator();
+                                ui.add_space(6.0);
+                                for cat in group {
+                                    if category_row(ui, cat) {
+                                        clicked_category = Some(Some(cat.id.clone()));
+                                    }
+                                }
+                                ui.add_space(6.0);
                             }
-                            ui.add_space(10.0);
+                            ui.add_space(4.0);
                         });
                 }
                 // Many categories (or the large-text mode) can outgrow a
@@ -3078,7 +3171,9 @@ impl eframe::App for App {
             } else if available && !cooling {
                 let app = &cfg.apps[idx];
                 self.last_launch.insert(idx, now);
-                match app.launch() {
+                let extra: &[String] =
+                    if ask_advisor && advisor == Some(idx) { &advisor_args } else { &[] };
+                match app.launch_with(extra) {
                     Ok((child, log)) => {
                         let verb =
                             if app.url.is_some() { "Opened" } else { "Launched" };

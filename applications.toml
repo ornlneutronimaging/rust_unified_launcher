@@ -70,6 +70,12 @@ id = "tiff-viewer-renamed-2026-10"
 text = "The TIFF Viewer is now the Neutron Image Viewer (Rust tools category): same viewer, new name — with a menu bar, a brush tool, a joint histogram of two stacks, saved configurations and NeXus / HDF5 arrays loaded as stacks. Scripts calling launch_rust_tiff_viewer.sh keep working."
 until = "2027-01-31"
 
+[[notice]]
+id = "normalization-app-2026-11"
+text = "Normalization has a new home: use the Normalization (VENUS & MARS) application (Rust Applications) for white-beam and TOF data, at VENUS and MARS. Same NeuNorm numerics and the same configuration files as the marimo normalization notebooks, which will be retired on December 11, 2026. Not sure which application to use for your data? Try the new Tool Advisor (first entry of Rust Applications)."
+until = "2027-01-15"
+warning = true
+
 # Shared usage database: every launch appends one JSON line to
 # <usage_db>/records/<user>.jsonl (user, local date/time, application,
 # category, host). Viewed with the "Portal Usage Monitor" (CIS category).
@@ -86,6 +92,10 @@ usage_db = "/SNS/VENUS/shared/software/usage_db"
 # tool, add the user's wording to that tool's `ask_examples` (best) or
 # `tags`, or extend a group here.
 [ask]
+# The application behind the "Guide me" button at the end of the Ask row
+# (and the "whole workflow" link under the suggestions): it is started
+# with `--ask <the question typed>`. Remove the line to hide the button.
+advisor = "Tool Advisor"
 synonyms = [
     ["tiff", "tif", "image", "images", "picture", "frame", "frames"],
     ["stack", "series", "runs", "run", "batch", "sequence", "folder", "folders"],
@@ -216,6 +226,15 @@ users = ["j35", "h2b"]
 # --------------------------------------------------------------------------
 
 [[app]]
+name = "Tool Advisor"
+description = "Not sure which application to use? Give the beamline and the IPTS of your experiment (its detectors tell white beam from TOF), describe what you want to do with your data in your own words, and get the workflow to follow: numbered steps, each with a button that starts the right application of this portal. Leave the description empty to browse every workflow (normalization, CT reconstruction, Bragg edges, resonances, sample drift, cleaning, cropping, masking, stitching, figures and movies…)."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tool_advisor/launch_tool_advisor.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_tool_advisor_preview.png"
+tags = ["advisor", "help", "guide", "wizard", "workflow", "which tool", "where to start", "recommend", "suggest", "ipts", "venus", "mars"]
+ask_examples = ["which application should I use", "I do not know where to start", "what should I do with my data", "guide me through the analysis of my experiment"]
+
+[[app]]
 name = "Neutron Image Viewer"
 description = "Formerly the TIFF Viewer: browse image stacks of VENUS and MARS (folders of TIFF / FITS images, multi-page / SciTIFF files, NeXus / HDF5 arrays) with regions of interest and their profiles vs file index / TOF / lambda / energy — menu bar, brush tool, joint histogram of two stacks, saved configurations (HDF5), the run's NeXus file in the NeXus Viewer, contrast from the colorbar."
 category = "rust"
@@ -321,6 +340,14 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ou
 tags = ["outlier", "outliers", "imagej", "fiji", "median", "hot pixel", "dead pixel", "gamma", "despeckle", "noise", "clean", "histogram", "qhy", "ccd", "timepix", "filter"]
 
 [[app]]
+name = "Median Filter"
+description = "Median filter of a TOF image stack, built on the Neutron Image Viewer — e.g. to remove the zeros of an open beam. Neighbourhood = N × N pixels × M TOF bins; replace only the selected pixels (zeros, NaN / inf, below / above a threshold — every other pixel keeps its value) or every pixel (classic median filter); selected pixels can be ignored as neighbours so clusters of zeros are filled. Before / after statistics (zeros, NaN, min, max, mean, std, median) and histograms for every image or the integrated image; original and filtered stacks side by side in the embedded viewer (mirrored ROIs, profiles vs TOF / lambda / energy). Export to a new folder: filtered images under the input file names, every additional file of the input folder copied (spectra file, shutter files, …), summed image recomputed, provenance JSON. Folder, file, drag-and-drop or run number as input; headless mode."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_median_filter/launch_median_filter.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_median_filter_preview.png"
+tags = ["median", "filter", "zeros", "zero", "open beam", "ob", "tof", "stack", "timepix", "histogram", "statistics", "nan", "dead pixel", "clean", "denoise", "smooth", "export", "headless"]
+
+[[app]]
 name = "Metadata Overlapping Images"
 description = "Rust port of the metadata_overlapping_images notebook: write the metadata of a series of images (temperature, motor position, exposure, elapsed time… read from the TIFF tags) on the images, with a scale bar and a live graph of the metadata (current image marked), flip through / play the series, and export the annotated images as PNG files, a TIFF stack and a video (Motion-JPEG AVI, MP4 when ffmpeg is available, GIF) plus the metadata table. Same toolbox as the notebook to clean the metadata string and apply a linear operation; overlays dragged with the mouse; interactive colorbar (drag its ends / middle, wheel, double-click) and colormaps; settings saved as JSON and reusable headless (--headless --settings). Folder, files, drag-and-drop, run numbers (VENUS / MARS) or the 🕘 Recent menu as input; illustrated Help in a window of its own."
 category = "rust"
@@ -352,6 +379,14 @@ category = "rust"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_registration_timepix/launch_run_registration.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_registration_timepix_preview.png"
 tags = ["registration", "register", "align", "drift", "timepix", "runs", "offset", "shift", "sub-pixel", "export"]
+
+[[app]]
+name = "Normalization (VENUS & MARS)"
+description = "The recommended way to normalize: one desktop GUI replacing the three normalization marimo notebooks (NeuNorm numerics, same outputs): VENUS white beam (iKon-XL / QHY411 radiographs, run numbers or files, crop), VENUS TOF (Timepix tpx1 / tpx3 stacks: run folders, data information window with the quality check, integrated image with crop / background / ROI tools, TOF binning, fill of unmeasured pixels, nrad denoising with before / after histograms, stack statistics) and MARS white beam (folder scan into acquisition configurations, OB / DC matching, manual OB / DC, image tables with one switch per image size, rebin, gamma filter). Session configurations (HDF5) shared with the notebooks, the autonormalization monitor and the workflow runner."
+category = "rust"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_normalization/launch_normalization.sh"]
+tags = ["normalization", "normalize", "ob", "open beam", "dark current", "tof", "white beam", "venus", "mars", "neunorm", "nrad", "ccd", "timepix"]
+ask_examples = ["normalize my runs", "normalize a tof stack", "normalize mars radiographs", "divide the sample by the open beam"]
 
 [[app]]
 name = "CT Reconstruction (NeCTAR)"
@@ -851,6 +886,18 @@ command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_signal_evolutio
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/mcp_signal_evolution_preview.png"
 tags = ["mcp", "timepix", "detector", "monitor", "evolution", "health", "pixels", "database"]
 
+# ---- Team tools ----
+
+# Tools for the members of the instrument team.
+[[app]]
+name = "MARS Sample Catalog"
+description = "Every sample of a MARS IPTS with the exposure time it received, from the TIFF headers of raw/radiographs and raw/ct_scans. Tables and charts (exposure per sample, per day, per CT scan), ASCII export (CSV + text summary) and send by email. Rust port of the MARS_sample_cataloging notebook."
+category = "restricted"
+section = "Team tools"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mars_sample_catalog/launch_mars_sample_catalog.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_mars_sample_catalog_preview.png"
+tags = ["mars", "cg1d", "sample", "catalog", "exposure", "acquisition time", "ipts", "radiographs", "ct scans", "csv", "ascii", "email", "team"]
+
 # ---- System tools (admin only: machine users, licenses, IPTS lookup) ----
 
 [[app]]
@@ -993,14 +1040,6 @@ ask_examples = ["one chip is brighter than the others", "fix a chip offset", "le
 # Beta (password protected — see the [[category]] block above)
 # Development versions under test before they replace the production ones.
 # --------------------------------------------------------------------------
-
-[[app]]
-name = "Normalization (VENUS & MARS) — beta"
-description = "Desktop GUI of the three normalization notebooks (NeuNorm numerics, same outputs): VENUS white beam (iKon-XL / QHY411 radiographs, run numbers or files, crop), VENUS TOF (Timepix tpx1 / tpx3 stacks: run folders, data information window with the quality check, integrated image with crop / background / ROI tools, TOF binning, fill of unmeasured pixels, nrad denoising with before / after histograms, stack statistics) and MARS white beam (folder scan into acquisition configurations, OB / DC matching, manual OB / DC, image tables with one switch per image size, rebin, gamma filter). Session configurations (HDF5) shared with the notebooks, the autonormalization monitor and the workflow runner."
-category = "beta"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_normalization/launch_normalization.sh"]
-tags = ["normalization", "normalize", "ob", "open beam", "dark current", "tof", "white beam", "venus", "mars", "neunorm", "nrad", "ccd", "timepix", "beta"]
-ask_examples = ["normalize my runs", "normalize a tof stack", "normalize mars radiographs", "divide the sample by the open beam"]
 
 [[app]]
 name = "CT Reconstruction — NeCTAR (beta, mbirtorch)"
