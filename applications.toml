@@ -145,10 +145,6 @@ name = "Marimo notebooks (beta)"
 python = "/SNS/VENUS/shared/software/git/marimo_notebooks_development/.pixi/envs/default/bin/python"
 
 [[library_versions.environment]]
-name = "Jupyter data-reduction notebooks"
-python = "/SNS/VENUS/shared/software/git/python_notebooks_data_reduction/.pixi/envs/default/bin/python"
-
-[[library_versions.environment]]
 name = "Jupyter notebooks"
 python = "/SNS/VENUS/shared/software/git/python_notebooks/.pixi/envs/default/bin/python"
 
@@ -517,17 +513,6 @@ category = "jupyter"
 command = ["/SNS/VENUS/shared/software/bin/rust_jupyter_portal_dedicated_ipts"]
 clear_fontconfig = true
 tags = ["ipts"]
-requires_browser = true
-
-[[app]]
-name = "Jupyter Data Reduction"
-description = "Launch the Jupyter data-reduction notebooks (pixi environment)."
-category = "jupyter"
-# A Python script (#!/usr/bin/env python): run with python3, not bash — bash
-# read its first line "import sys" as ImageMagick's import and hung.
-command = ["/usr/bin/python3", "/SNS/VENUS/shared/software/scripts/start_jupyter_data_reduction_pixi"]
-in_terminal = true
-clear_fontconfig = true
 requires_browser = true
 
 # --------------------------------------------------------------------------
