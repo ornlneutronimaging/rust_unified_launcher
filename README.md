@@ -10,7 +10,7 @@ by a config file instead of hardcoded entries.
 - `applications.toml` (in this repo) lists every application: name,
   description, category, argv command, optional preview screenshot, optional
   flags (`in_terminal`, `clear_fontconfig`, `requires_browser`, `check_path`,
-  `workdir`, `tags`).
+  `workdir`, `tags`, `instruments`).
 - The launcher renders them grouped by category with a search box, a preview
   panel, availability checks (missing targets are grayed out with the reason
   on hover), and a 5-second per-app launch cooldown.
@@ -39,6 +39,25 @@ by a config file instead of hardcoded entries.
   over SSH). When the flag is unset the launcher guesses from the command / tags;
   `requires_browser = false` turns the check off (used for the Fix tool
   itself).
+- **Instrument selector** (header, left of the logo): one button per
+  `[[instrument]]` of the config (VENUS, MARS). The launcher lists the
+  applications of the selected instrument only — those naming its id in
+  `instruments = ["venus"]`, plus those with no `instruments` key, which are
+  common to every instrument. The other applications are dropped when the
+  config loads, so they are absent from the list, search, the Ask box,
+  favorites and "Recently used"; a category left empty loses its sidebar
+  row. The launcher always starts on the instrument of the machine
+  (`hosts = ["bl10"]` matches the start of the host name: VENUS on the
+  `bl10-*` machines, MARS on the `cg1d-*` ones; no match: the first
+  instrument, VENUS). A click on another button lasts until the launcher is
+  closed — nothing is saved, the home directory being shared by both
+  beamlines.
+  An unknown instrument id is reported in the status bar. An instrument's
+  optional `backdrop = "/path/picture.jpg"` is painted faded behind the
+  categories, the list and the preview while it is selected, as on the
+  Setup screen of `rust_normalization` (same pictures, in `logos/`): the
+  picture covers the area, or with `backdrop_fit = "corner"` rises whole
+  from the lower right corner (the MARS planet).
 - A `[[category]]` with `passwords = ["word1", "word2"]` shows as 🔒 in the
   sidebar and asks for one of those passwords (case-insensitive) before
   revealing its applications; until unlocked they are hidden from the All

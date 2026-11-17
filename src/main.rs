@@ -96,6 +96,44 @@ struct Config {
     /// dismisses them (per user) or their `until` date has passed.
     #[serde(default, rename = "notice")]
     notices: Vec<Notice>,
+    /// `[[instrument]]`: the beamlines offered by the instrument selector of
+    /// the header. None declared: no selector, every app is shown.
+    #[serde(default, rename = "instrument")]
+    instruments: Vec<Instrument>,
+    /// Id of the instrument the apps were restricted to when the config was
+    /// loaded (see `restrict_to_instrument`); never read from the file.
+    #[serde(skip)]
+    active_instrument: Option<String>,
+    /// Problems found by `validate_config` on the whole file, before the
+    /// apps of the other instruments were dropped; never read from the file.
+    #[serde(skip)]
+    warnings: Vec<String>,
+}
+
+/// A beamline of the header's instrument selector (`[[instrument]]`).
+/// Selecting one keeps the apps that list its id in their `instruments`
+/// plus the apps that list none (the tools common to every instrument); the
+/// other apps do not exist until the selection changes.
+#[derive(Deserialize)]
+struct Instrument {
+    id: String,
+    name: String,
+    /// Host-name prefixes (case-insensitive) of the machines where this
+    /// instrument is the one selected when the launcher starts, e.g. `bl10`
+    /// for the VENUS analysis machines.
+    #[serde(default)]
+    hosts: Vec<String>,
+    /// Absolute path of a picture (PNG / JPEG) shown faded behind the
+    /// categories, the list and the preview while this instrument is
+    /// selected, as on the Setup screen of rust_normalization.
+    #[serde(default)]
+    backdrop: Option<String>,
+    /// `cover` (default, also any other value): the picture is scaled to
+    /// fill the area, its overflow cropped — for a photo. `corner`: the
+    /// whole picture rises from the lower right corner — for a planet on a
+    /// transparent background.
+    #[serde(default)]
+    backdrop_fit: String,
 }
 
 /// An announcement to every user — a renamed tool, a planned outage… Shown
@@ -189,6 +227,35 @@ impl Config {
         self.categories.retain(|c| !hidden.contains(&c.id));
         self.apps.retain(|a| !hidden.contains(&a.category));
     }
+
+    /// The instrument to show: the one clicked in the selector this session
+    /// (`chosen`) when it still exists, else the one whose `hosts` match
+    /// this machine, else the first declared. `None` when the config
+    /// declares no instrument.
+    fn pick_instrument(&self, chosen: Option<&str>, host: &str) -> Option<String> {
+        let host = host.to_lowercase();
+        chosen
+            .and_then(|s| self.instruments.iter().find(|i| i.id.eq_ignore_ascii_case(s)))
+            .or_else(|| {
+                self.instruments.iter().find(|i| {
+                    i.hosts
+                        .iter()
+                        .any(|h| !h.is_empty() && host.starts_with(&h.to_lowercase()))
+                })
+            })
+            .or_else(|| self.instruments.first())
+            .map(|i| i.id.clone())
+    }
+
+    /// Keep the apps of instrument `id` (those listing it in `instruments`,
+    /// and those listing nothing) and drop the others, so they never show
+    /// up anywhere — list, search, Ask box, favorites, "Recently used".
+    fn restrict_to_instrument(&mut self, id: &str) {
+        self.apps.retain(|a| {
+            a.instruments.is_empty() || a.instruments.iter().any(|i| i.eq_ignore_ascii_case(id))
+        });
+        self.active_instrument = Some(id.to_owned());
+    }
 }
 
 #[cfg(test)]
@@ -227,6 +294,85 @@ command = ["/bin/true"]
     }
 }
 
+#[cfg(test)]
+mod instrument_tests {
+    use super::*;
+
+    const TOML: &str = r#"
+[[instrument]]
+id = "venus"
+name = "VENUS"
+hosts = ["bl10"]
+[[instrument]]
+id = "mars"
+name = "MARS"
+hosts = ["cg1d"]
+[[category]]
+id = "rust"
+name = "Rust"
+[[app]]
+name = "Viewer"
+category = "rust"
+command = ["/bin/true"]
+[[app]]
+name = "TOF Profile"
+category = "rust"
+instruments = ["venus"]
+command = ["/bin/true"]
+[[app]]
+name = "Sample Catalog"
+category = "rust"
+instruments = ["MARS"]
+command = ["/bin/true"]
+[[app]]
+name = "Typo"
+category = "rust"
+instruments = ["venous"]
+command = ["/bin/true"]
+"#;
+
+    fn names(cfg: &Config) -> Vec<&str> {
+        cfg.apps.iter().map(|a| a.name.as_str()).collect()
+    }
+
+    #[test]
+    fn an_instrument_keeps_its_apps_and_the_common_ones() {
+        let mut cfg: Config = toml::from_str(TOML).unwrap();
+        cfg.restrict_to_instrument("venus");
+        assert_eq!(names(&cfg), ["Viewer", "TOF Profile"]);
+        assert_eq!(cfg.active_instrument.as_deref(), Some("venus"));
+
+        let mut cfg: Config = toml::from_str(TOML).unwrap();
+        cfg.restrict_to_instrument("mars");
+        assert_eq!(names(&cfg), ["Viewer", "Sample Catalog"]);
+    }
+
+    #[test]
+    fn the_instrument_is_the_chosen_one_then_the_host_then_the_first() {
+        let cfg: Config = toml::from_str(TOML).unwrap();
+        let pick = |chosen, host| cfg.pick_instrument(chosen, host);
+        assert_eq!(pick(Some("mars"), "bl10-analysis6.sns.gov").as_deref(), Some("mars"));
+        assert_eq!(pick(None, "CG1D-analysis1.ornl.gov").as_deref(), Some("mars"));
+        assert_eq!(pick(None, "bl10-analysis6.sns.gov").as_deref(), Some("venus"));
+        assert_eq!(pick(None, "analysis-node21.sns.gov").as_deref(), Some("venus"));
+        // A chosen instrument that is no longer declared falls back to the host.
+        assert_eq!(pick(Some("gone"), "cg1d-analysis3.ornl.gov").as_deref(), Some("mars"));
+    }
+
+    #[test]
+    fn no_instrument_declared_means_no_selection() {
+        let cfg: Config = toml::from_str("[[app]]\nname = \"A\"\ncategory = \"c\"").unwrap();
+        assert_eq!(cfg.pick_instrument(Some("venus"), "bl10-analysis6"), None);
+    }
+
+    #[test]
+    fn an_unknown_instrument_id_is_reported() {
+        let cfg: Config = toml::from_str(TOML).unwrap();
+        let warnings = validate_config(&cfg);
+        assert_eq!(warnings, ["\"Typo\" lists unknown instrument \"venous\""]);
+    }
+}
+
 /// `[library_versions]`: the admin "Show library versions" switch. Lists,
 /// for each configured Python environment (pixi, conda, venv…), the version
 /// of its installed packages — to check e.g. which NeuNorm the marimo
@@ -261,6 +407,11 @@ struct AppEntry {
     /// emitted whenever the section of the listed apps changes.
     #[serde(default)]
     section: Option<String>,
+    /// Ids of the `[[instrument]]`s this app is for; it is hidden while
+    /// another instrument is selected in the header. Empty: a tool common
+    /// to every instrument, always shown.
+    #[serde(default)]
+    instruments: Vec<String>,
     /// Argv of the process to spawn (first element is the executable).
     /// May be omitted when `url` is set.
     #[serde(default)]
@@ -473,9 +624,12 @@ impl AppEntry {
 }
 
 /// Warnings for entries that reference a category id with no `[[category]]`
-/// block — they would silently render under the raw id otherwise.
+/// block — they would silently render under the raw id otherwise — or an
+/// instrument id with no `[[instrument]]` block, which would hide the entry
+/// whatever the instrument selected.
 fn validate_config(cfg: &Config) -> Vec<String> {
-    cfg.apps
+    let unknown_categories = cfg
+        .apps
         .iter()
         .filter(|a| !cfg.categories.iter().any(|c| c.id == a.category))
         .map(|a| {
@@ -483,8 +637,14 @@ fn validate_config(cfg: &Config) -> Vec<String> {
                 "\"{}\" references unknown category \"{}\"",
                 a.name, a.category
             )
-        })
-        .collect()
+        });
+    let unknown_instruments = cfg.apps.iter().flat_map(|a| {
+        a.instruments
+            .iter()
+            .filter(|i| !cfg.instruments.iter().any(|known| known.id.eq_ignore_ascii_case(i)))
+            .map(move |i| format!("\"{}\" lists unknown instrument \"{}\"", a.name, i))
+    });
+    unknown_categories.chain(unknown_instruments).collect()
 }
 
 /// Does a captured launch log look like a "browser already running / profile
@@ -551,12 +711,19 @@ fn config_path() -> PathBuf {
     PathBuf::from(DEFAULT_CONFIG)
 }
 
-fn load_config(path: &Path) -> Result<Config, String> {
+/// Load the config as this user sees it: without the categories reserved
+/// for other users, and with the apps of one instrument only — `instrument`,
+/// the one clicked in the selector, or this machine's when `None`.
+fn load_config(path: &Path, instrument: Option<&str>) -> Result<Config, String> {
     let text = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read {}: {e}", path.display()))?;
     let mut cfg: Config =
         toml::from_str(&text).map_err(|e| format!("Bad TOML in {}: {e}", path.display()))?;
     cfg.restrict_to_user(&current_user());
+    cfg.warnings = validate_config(&cfg);
+    if let Some(id) = cfg.pick_instrument(instrument, &current_host()) {
+        cfg.restrict_to_instrument(&id);
+    }
     Ok(cfg)
 }
 
@@ -935,6 +1102,48 @@ fn load_preview(ctx: &egui::Context, app: &AppEntry, idx: usize) -> Preview {
         Some(tex) => Preview::Loaded(tex),
         None => Preview::Missing,
     }
+}
+
+/// Paint an instrument's `backdrop`, faded, over `rect` (same layouts and
+/// opacities as rust_normalization): `corner` puts the whole picture in the
+/// lower right corner, partly out of the area; otherwise the picture covers
+/// the area, cropped equally on both sides of what overflows.
+fn paint_backdrop(
+    painter: &egui::Painter,
+    rect: egui::Rect,
+    tex: &egui::TextureHandle,
+    corner: bool,
+    dark_mode: bool,
+) {
+    let [tw, th] = tex.size();
+    let (tw, th) = (tw as f32, th as f32);
+    if tw < 1.0 || th < 1.0 {
+        return;
+    }
+    let tint = |alpha: f32| egui::Color32::from_white_alpha((alpha * 255.0) as u8);
+    if corner {
+        let size = (rect.height() * 0.9).min(rect.width() * 0.6).max(120.0);
+        let center = egui::pos2(rect.right() - size * 0.42, rect.bottom() - size * 0.38);
+        let scale = size / tw.max(th);
+        painter.image(
+            tex.id(),
+            egui::Rect::from_center_size(center, egui::vec2(tw * scale, th * scale)),
+            egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+            tint(if dark_mode { 0.32 } else { 0.26 }),
+        );
+        return;
+    }
+    let scale = (rect.width() / tw).max(rect.height() / th);
+    let (vw, vh) = (rect.width() / (tw * scale), rect.height() / (th * scale));
+    painter.image(
+        tex.id(),
+        rect,
+        egui::Rect::from_min_max(
+            egui::pos2(0.5 - vw / 2.0, 0.5 - vh / 2.0),
+            egui::pos2(0.5 + vw / 2.0, 0.5 + vh / 2.0),
+        ),
+        tint(if dark_mode { 0.20 } else { 0.14 }),
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1520,6 +1729,29 @@ fn fix_browser_button(ui: &mut egui::Ui) -> bool {
     .clicked()
 }
 
+/// One button of the header's instrument selector, drawn on the brand
+/// green: the selected instrument is a white pill with green text, the
+/// others are outlined in white.
+fn instrument_button(ui: &mut egui::Ui, name: &str, active: bool) -> egui::Response {
+    let (text, fill) = if active {
+        (theme::PRIMARY_RICH, theme::TEXT_WHITE)
+    } else {
+        (theme::TEXT_WHITE, egui::Color32::TRANSPARENT)
+    };
+    ui.add(
+        egui::Button::new(egui::RichText::new(name).strong().color(text))
+            .fill(fill)
+            .stroke(egui::Stroke::new(1.0, theme::TEXT_WHITE))
+            .corner_radius(6.0)
+            .min_size(egui::vec2(76.0, 28.0)),
+    )
+    .on_hover_text(if active {
+        format!("Showing the applications for {name}")
+    } else {
+        format!("Show only the applications for {name}")
+    })
+}
+
 struct App {
     config_path: PathBuf,
     config: Result<Config, String>,
@@ -1531,6 +1763,9 @@ struct App {
     /// Today (`YYYY-MM-DD`), read once at start-up for the notices' `until`.
     today: String,
     logo: Option<egui::TextureHandle>,
+    /// Instrument backdrops by path, loaded when first shown (`None`: the
+    /// file is missing or not a picture).
+    backdrops: HashMap<String, Option<egui::TextureHandle>>,
     available: Vec<bool>,
     previews: HashMap<usize, Preview>,
     /// Index into apps of the entry shown in the preview panel (last hovered
@@ -1542,6 +1777,11 @@ struct App {
     scroll_to_highlight: bool,
     /// Category id filter; `None` shows every category.
     active_category: Option<String>,
+    /// Instrument id clicked in the header's selector, for this session
+    /// only: `None` at start, when the machine decides (the home directory
+    /// is shared by the VENUS and MARS machines, so a remembered choice
+    /// would follow the user to the other beamline).
+    instrument: Option<String>,
     search: String,
     /// Give the search bar keyboard focus on the next frame (set at startup).
     focus_search: bool,
@@ -1600,12 +1840,14 @@ impl App {
             dismissed: load_dismissed(),
             today: local_date(),
             logo: None,
+            backdrops: HashMap::new(),
             available: Vec::new(),
             previews: HashMap::new(),
             selected: None,
             highlighted: None,
             scroll_to_highlight: false,
             active_category: None,
+            instrument: None,
             search: String::new(),
             focus_search: true,
             ask: String::new(),
@@ -1639,13 +1881,13 @@ impl App {
     fn reload(&mut self, announce: bool) {
         let selected_name = self.app_name(self.selected);
         let highlighted_name = self.app_name(self.highlighted);
-        self.config = load_config(&self.config_path);
+        self.config = load_config(&self.config_path, self.instrument.as_deref());
         self.config_mtime = config_mtime(&self.config_path);
         self.previews.clear();
         match &self.config {
             Ok(cfg) => {
                 self.available = cfg.apps.iter().map(|a| a.available()).collect();
-                self.config_warnings = validate_config(cfg);
+                self.config_warnings = cfg.warnings.clone();
                 self.ask_synonyms = ask::Synonyms::new(&cfg.ask.synonyms);
                 self.ask_index = cfg
                     .apps
@@ -1659,8 +1901,13 @@ impl App {
                 };
                 self.selected = position(selected_name);
                 self.highlighted = position(highlighted_name);
+                // Back to the All view when the category shown is gone —
+                // or has no application for the instrument just selected.
                 if let Some(cat) = &self.active_category {
-                    if cat != FAVORITES_VIEW && !cfg.categories.iter().any(|c| &c.id == cat) {
+                    if cat != FAVORITES_VIEW
+                        && (!cfg.categories.iter().any(|c| &c.id == cat)
+                            || !cfg.apps.iter().any(|a| &a.category == cat))
+                    {
                         self.active_category = None;
                     }
                 }
@@ -1675,6 +1922,22 @@ impl App {
         }
         if announce {
             self.status = Some(Ok("Configuration reloaded".to_owned()));
+        }
+    }
+
+    /// The header's instrument selector was clicked: show the applications
+    /// of that instrument until the launcher is closed.
+    fn set_instrument(&mut self, id: String) {
+        self.instrument = Some(id);
+        self.reload(false);
+        if let Ok(cfg) = &self.config {
+            let name = cfg
+                .instruments
+                .iter()
+                .find(|i| Some(i.id.as_str()) == cfg.active_instrument.as_deref())
+                .map(|i| i.name.as_str())
+                .unwrap_or_default();
+            self.status = Some(Ok(format!("Showing the {name} applications")));
         }
     }
 
@@ -1981,6 +2244,8 @@ impl eframe::App for App {
         }
 
         // ------------------------------------------------ branded header ---
+        // Id of the instrument clicked in the selector this frame.
+        let mut instrument_request: Option<String> = None;
         egui::TopBottomPanel::top("top")
             .frame(
                 egui::Frame::new()
@@ -2017,10 +2282,32 @@ impl eframe::App for App {
                                         .max_height(LOGO_MAX_HEIGHT),
                                 );
                             }
+                            // Instrument selector, left of the logo. The
+                            // layout runs right to left: last one first.
+                            let Ok(cfg) = &self.config else { return };
+                            if cfg.instruments.is_empty() {
+                                return;
+                            }
+                            ui.add_space(16.0);
+                            for instrument in cfg.instruments.iter().rev() {
+                                let active = cfg.active_instrument.as_deref()
+                                    == Some(instrument.id.as_str());
+                                if instrument_button(ui, &instrument.name, active).clicked()
+                                    && !active
+                                {
+                                    instrument_request = Some(instrument.id.clone());
+                                }
+                            }
+                            ui.label(
+                                egui::RichText::new("Instrument").color(theme::TEXT_WHITE),
+                            );
                         },
                     );
                 });
             });
+        if let Some(id) = instrument_request {
+            self.set_instrument(id);
+        }
 
         // --------------------------------------------------- status bar ---
         egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
@@ -2052,7 +2339,7 @@ impl eframe::App for App {
                         format!("⚠ {}", self.config_warnings.join("; ")),
                     )
                     .on_hover_text(
-                        "Fix the category ids in applications.toml",
+                        "Fix the category / instrument ids in applications.toml",
                     );
                 }
             });
@@ -2611,7 +2898,44 @@ impl eframe::App for App {
             cfg.categories.iter().partition(|c| !c.users.is_empty());
         let (protected, regular): (Vec<&Category>, Vec<&Category>) =
             open.into_iter().partition(|c| !c.passwords.is_empty());
+        // ------------------------------------------------------ backdrop ---
+        // What the bars leave is the body: categories, list and preview.
+        // Its three panels are transparent and share the fill painted here,
+        // so the picture of the selected instrument (`backdrop` of its
+        // `[[instrument]]`) sits faded behind all of them.
+        let body = ctx.available_rect();
+        let body_painter =
+            ctx.layer_painter(egui::LayerId::background()).with_clip_rect(body);
+        body_painter.rect_filled(body, 0.0, ctx.style().visuals.panel_fill);
+        let active_instrument = cfg
+            .instruments
+            .iter()
+            .find(|i| Some(i.id.as_str()) == cfg.active_instrument.as_deref());
+        if let Some(instrument) = active_instrument {
+            if let Some(path) = &instrument.backdrop {
+                let tex = self.backdrops.entry(path.clone()).or_insert_with(|| {
+                    std::fs::read(path)
+                        .ok()
+                        .and_then(|bytes| load_texture(ctx, &format!("backdrop_{path}"), &bytes))
+                });
+                if let Some(tex) = tex {
+                    paint_backdrop(
+                        &body_painter,
+                        body,
+                        tex,
+                        instrument.backdrop_fit.eq_ignore_ascii_case("corner"),
+                        ctx.style().visuals.dark_mode,
+                    );
+                }
+            }
+        }
+        let side_frame =
+            egui::Frame::side_top_panel(&ctx.style()).fill(egui::Color32::TRANSPARENT);
+        let central_frame =
+            egui::Frame::central_panel(&ctx.style()).fill(egui::Color32::TRANSPARENT);
+
         egui::SidePanel::left("categories")
+            .frame(side_frame)
             .exact_width(CATEGORY_PANEL_WIDTH)
             .resizable(false)
             .show(ctx, |ui| {
@@ -2684,6 +3008,12 @@ impl eframe::App for App {
                         }
                         ui.add_space(4.0);
                         for cat in &regular {
+                            // Nothing for the selected instrument: no row.
+                            if cfg.active_instrument.is_some()
+                                && !cfg.apps.iter().any(|a| a.category == cat.id)
+                            {
+                                continue;
+                            }
                             if category_row(ui, cat) {
                                 clicked_category = Some(Some(cat.id.clone()));
                             }
@@ -2698,6 +3028,7 @@ impl eframe::App for App {
 
         // ------------------------------------------------- preview panel ---
         egui::SidePanel::right("preview_panel")
+            .frame(side_frame)
             .exact_width(PREVIEW_PANEL_WIDTH)
             .resizable(false)
             .show(ctx, |ui| {
@@ -2726,55 +3057,62 @@ impl eframe::App for App {
                     .id_salt("preview_scroll")
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
-                        ui.vertical_centered(|ui| {
-                            ui.label(egui::RichText::new(&app.name).strong().size(16.0));
-                        });
-                        ui.add_space(6.0);
-                        if !app.description.is_empty() {
-                            ui.label(
-                                egui::RichText::new(&app.description)
-                                    .color(theme::text_emphasis(ui.visuals())),
-                            );
-                            ui.add_space(4.0);
-                        }
-                        if !app.tags.is_empty() {
-                            ui.label(
-                                egui::RichText::new(format!("Tags: {}", app.tags.join(", ")))
-                                    .weak()
-                                    .small(),
-                            );
-                            ui.add_space(4.0);
-                        }
-                        ui.label(
-                            egui::RichText::new(
-                                app.url.clone().unwrap_or_else(|| app.command.join(" ")),
-                            )
-                            .weak()
-                            .small()
-                            .monospace(),
-                        );
-                        if app.involves_browser() {
-                            // Browser tools fail when the shared Firefox
-                            // profile is locked by a session on another
-                            // machine: offer the fix right where the tool
-                            // is launched from.
-                            ui.add_space(8.0);
+                        // The text sits on a card, like the rows of the
+                        // list, to stay readable over the backdrop.
+                        egui::Frame::group(ui.style())
+                            .corner_radius(6.0)
+                            .inner_margin(10.0)
+                            .fill(theme::surface_weak(ui.visuals()))
+                            .show(ui, |ui| {
+                            ui.set_width(ui.available_width());
+                            ui.vertical_centered(|ui| {
+                                ui.label(egui::RichText::new(&app.name).strong().size(16.0));
+                            });
+                            ui.add_space(6.0);
+                            if !app.description.is_empty() {
+                                ui.label(
+                                    egui::RichText::new(&app.description)
+                                        .color(theme::text_emphasis(ui.visuals())),
+                                );
+                                ui.add_space(4.0);
+                            }
+                            if !app.tags.is_empty() {
+                                ui.label(
+                                    egui::RichText::new(format!("Tags: {}", app.tags.join(", ")))
+                                        .weak()
+                                        .small(),
+                                );
+                                ui.add_space(4.0);
+                            }
                             ui.label(
                                 egui::RichText::new(
-                                    "\u{1F310} Opens in your web browser. If the \
-                                     browser refuses to open (\"Firefox is \
-                                     already running\"), fix it here first:",
+                                    app.url.clone().unwrap_or_else(|| app.command.join(" ")),
                                 )
+                                .weak()
                                 .small()
-                                .color(theme::text_emphasis(ui.visuals())),
+                                .monospace(),
                             );
-                            ui.add_space(4.0);
-                            if fix_browser_button(ui) {
-                                fix_clicked = true;
+                            if app.involves_browser() {
+                                // Browser tools fail when the shared Firefox
+                                // profile is locked by a session on another
+                                // machine: offer the fix right where the tool
+                                // is launched from.
+                                ui.add_space(8.0);
+                                ui.label(
+                                    egui::RichText::new(
+                                        "\u{1F310} Opens in your web browser. If the \
+                                         browser refuses to open (\"Firefox is \
+                                         already running\"), fix it here first:",
+                                    )
+                                    .small()
+                                    .color(theme::text_emphasis(ui.visuals())),
+                                );
+                                ui.add_space(4.0);
+                                if fix_browser_button(ui) {
+                                    fix_clicked = true;
+                                }
                             }
-                        }
-                        ui.add_space(8.0);
-                        ui.separator();
+                        });
                         ui.add_space(8.0);
                         if !self.previews.contains_key(&idx) {
                             let preview = load_preview(ctx, app, idx);
@@ -2811,7 +3149,7 @@ impl eframe::App for App {
 
         // ------------------------------------------------- application list
         let mut versions_request = false;
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
             ui.add_space(8.0);
 
             // A locked category shows a password prompt instead of its apps.
@@ -3344,7 +3682,7 @@ impl eframe::App for App {
 
 fn main() -> eframe::Result<()> {
     let config_path = config_path();
-    let title = load_config(&config_path)
+    let title = load_config(&config_path, None)
         .map(|c| c.title)
         .unwrap_or_else(|_| default_title());
     let options = eframe::NativeOptions {

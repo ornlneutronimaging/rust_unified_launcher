@@ -11,6 +11,11 @@
 #   section     = "Optional sub-section"     # smaller header inside the
 #                                            # category; keep apps of the same
 #                                            # section consecutive in this file
+#   instruments = ["venus"]                  # ids of the [[instrument]]s this
+#                                            # app is for: hidden while another
+#                                            # instrument is selected at the top
+#                                            # of the window. Omit for a tool
+#                                            # common to every instrument
 #   command     = ["argv0", "arg1", ...]     # scripts go through /bin/bash
 #   url         = "https://..."              # open a web page in the default
 #                                            # browser instead of running a
@@ -50,6 +55,29 @@
 #                                            # it and its apps do not exist
 #                                            # (no sidebar entry, no search,
 #                                            # no Ask hit, no 🔒 prompt)
+#
+# An [[instrument]] is a button of the instrument selector at the top of the
+# window. The launcher lists the apps of the selected instrument only: those
+# naming it in `instruments`, plus those with no `instruments` at all.
+#   [[instrument]]
+#   id    = "venus"                          # used in `instruments = [...]`
+#   name  = "VENUS"                          # shown on the button
+#   hosts = ["bl10"]                         # optional: selected when the
+#                                            # launcher starts on a machine
+#                                            # whose host name starts with one
+#                                            # of these; on any other machine
+#                                            # the first [[instrument]] is.
+#                                            # A click on another button lasts
+#                                            # until the launcher is closed
+#   backdrop = "/path/picture.jpg"           # optional: PNG / JPEG shown faded
+#                                            # behind the window while this
+#                                            # instrument is selected
+#   backdrop_fit = "corner"                  # optional: the whole picture
+#                                            # rises from the lower right
+#                                            # corner (a planet on a
+#                                            # transparent background);
+#                                            # default "cover": the picture
+#                                            # fills the window, cropped
 #
 # A [[notice]] is an announcement shown to every user under the header, with
 # a "Got it" button that hides it for that user (change the id to show an
@@ -164,33 +192,34 @@ python = "/SNS/VENUS/shared/software/git/all_ct_reconstruction/.pixi/envs/defaul
 name = "CT reconstruction (development)"
 python = "/SNS/VENUS/shared/software/git/all_ct_reconstruction_development/.pixi/envs/default/bin/python"
 
+[[instrument]]
+id = "venus"
+name = "VENUS"
+hosts = ["bl10"]
+backdrop = "/SNS/VENUS/shared/software/git/rust_unified_launcher/logos/venus_beamline.jpg"
+
+[[instrument]]
+id = "mars"
+name = "MARS"
+hosts = ["cg1d"]
+backdrop = "/SNS/VENUS/shared/software/git/rust_unified_launcher/logos/mars_planet.png"
+backdrop_fit = "corner"
+
 [[category]]
 id = "rust"
 name = "Rust Applications"
 
 [[category]]
-id = "jupyter"
-name = "Jupyter Notebooks"
-
-[[category]]
-id = "marimo"
-name = "Marimo Notebooks"
+id = "notebooks"
+name = "Notebooks"
 
 [[category]]
 id = "python"
-name = "Python & Other Apps"
+name = "Python Applications"
 
 [[category]]
 id = "web"
 name = "Web Applications"
-
-[[category]]
-id = "venus"
-name = "VENUS"
-
-[[category]]
-id = "mars"
-name = "MARS"
 
 [[category]]
 id = "experiment"
@@ -259,6 +288,7 @@ tags = ["cylinder", "cylindrical", "geometry", "correction", "chord", "attenuati
 name = "TOF Profile Viewer and Bin Maker"
 description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF profiles."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_rebin_viewer/launch_tof_profile_rebin_viewer.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tof_profile_viewer_preview.png"
 tags = ["time of flight"]
@@ -275,6 +305,7 @@ tags = ["bubble", "profile", "mask", "battery", "electrolyte", "heat map", "csv"
 name = "Peak Difference Map"
 description = "For a stack of TOF image folders: place a crop box inside the sample with a horizontal profile, rebin it, pick a range on each side of a peak on the per-pixel profile, map (right mean − left mean) for every folder, or fit the Kropff Bragg-edge model (iBeatles / iBEAMS method, σ from the whole crop) per pixel / column and map the edge height, position and the other parameters — TIFF + JSON export."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_peak_difference_map/launch_peak_difference_map.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_peak_difference_map_preview.png"
 tags = ["peak", "bragg edge", "kropff", "fit", "height", "difference", "crop", "rebin", "profile", "ct", "tof"]
@@ -322,6 +353,7 @@ tags = ["offset", "shift", "stage", "align", "overlay", "profile", "translation"
 name = "Sample Drift Viewer"
 description = "Did the sample drift? Load a series of Timepix runs (run numbers such as 19719-19727, or browse for run folders), flip through their integrated images with a slider / play, and follow a line profile of adjustable width across every run: profile overlay, run × position map and sub-pixel shift of each run against a reference run. A PV of the NeXus files (e.g. a sample temperature) can be overlaid on the shift plot with its own y axis on the right. Difference-vs-reference view, CSV export, headless mode."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_sample_drift_viewer/launch_sample_drift_viewer.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_sample_drift_viewer_preview.png"
 tags = ["drift", "timepix", "runs", "integrated", "slider", "profile", "edge", "shift", "stability", "motion", "pv", "temperature"]
@@ -339,6 +371,7 @@ tags = ["outlier", "outliers", "imagej", "fiji", "median", "hot pixel", "dead pi
 name = "Median Filter"
 description = "Median filter of a TOF image stack, built on the Neutron Image Viewer — e.g. to remove the zeros of an open beam. Neighbourhood = N × N pixels × M TOF bins; replace only the selected pixels (zeros, NaN / inf, below / above a threshold — every other pixel keeps its value) or every pixel (classic median filter); selected pixels can be ignored as neighbours so clusters of zeros are filled. Before / after statistics (zeros, NaN, min, max, mean, std, median) and histograms for every image or the integrated image; original and filtered stacks side by side in the embedded viewer (mirrored ROIs, profiles vs TOF / lambda / energy). Export to a new folder: filtered images under the input file names, every additional file of the input folder copied (spectra file, shutter files, …), summed image recomputed, provenance JSON. Folder, file, drag-and-drop or run number as input; headless mode."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_median_filter/launch_median_filter.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_median_filter_preview.png"
 tags = ["median", "filter", "zeros", "zero", "open beam", "ob", "tof", "stack", "timepix", "histogram", "statistics", "nan", "dead pixel", "clean", "denoise", "smooth", "export", "headless"]
@@ -372,6 +405,7 @@ tags = ["mask", "masking", "sample", "roi", "region", "rectangle", "ellipse", "c
 name = "Run Registration"
 description = "Register a series of Timepix runs against a reference run: sub-pixel (x, y) offset of every run measured on the integrated images, checked by eye (slider / play, difference-vs-reference view, offsets table and plot, manual override), then applied to every frame and exported to a new folder that keeps the original run folder names. The registered runs can be opened straight in the Sample Drift Viewer. Whole-pixel mode, headless mode."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_registration_timepix/launch_run_registration.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_registration_timepix_preview.png"
 tags = ["registration", "register", "align", "drift", "timepix", "runs", "offset", "shift", "sub-pixel", "export"]
@@ -420,6 +454,7 @@ tags = ["3d", "volume", "ct", "tomography", "viewer"]
 name = "Hyperspectral Masker"
 description = "Create a copy of an input data set with selected pixels masked."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_hyperspectra_masker/launch_rust_hyperspectral_makser.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/hyperspectral_masker_preview.png"
 
@@ -427,14 +462,24 @@ preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/hypersp
 name = "Auto Normalization Monitor at VENUS"
 description = "Monitor the state of the VENUS auto normalization pipeline."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autonormalization_monitor_preview.png"
 tags = ["normalization", "venus", "auto"]
 
 [[app]]
+name = "Auto Normalization Monitor at MARS"
+description = "Monitor the state of the MARS auto normalization pipeline."
+category = "rust"
+instruments = ["mars"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor_mars/launch_autonormalization_monitor_mars.sh"]
+tags = ["normalization", "mars", "cg1d", "auto"]
+
+[[app]]
 name = "rustpix Monitor"
 description = "Watch an IPTS (or a list of runs) for Timepix3 .tpx3 runs and histogram each new one with the rustpix command line into a folder of TIFFs (one per TOF bin + summed image + spectra), mirroring the images/ tree under a base output folder."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_rustpix_monitor/launch_rustpix_monitor.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rustpix_monitor_preview.png"
 tags = ["rustpix", "tpx3", "timepix3", "monitor", "auto", "tiff", "histogram", "venus"]
@@ -451,6 +496,7 @@ tags = ["denoise"]
 name = "Dehydration / Hydration Correction"
 description = "Denoise a stack of neutron images with the maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (run on the GPU in the git/mbirtorch_hsnt pixi environment): rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
 tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson"]
@@ -459,6 +505,7 @@ tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hs
 name = "Workflow Runner"
 description = "Job manager over a table of runs: NeuNorm normalization, crop regions, and dehydration/hydration — with auto-run and per-step logs."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_workflow_runner/launch_workflow_runner.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/workflow_runner.png"
 tags = ["workflow", "pipeline", "normalization", "crop", "dehydration", "neunorm", "batch"]
@@ -482,6 +529,7 @@ tags = ["nexus", "hdf5", "viewer"]
 name = "Venus Beam Monitor"
 description = "Display the beam-monitor signal of VENUS NeXus event files (counts vs TOF and wavelength) and export the histogrammed data to CSV."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_venus_monitor/launch_venus_monitor.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_venus_monitor_preview.png"
 tags = ["monitor", "beam", "nexus", "tof", "wavelength", "csv"]
@@ -490,39 +538,30 @@ tags = ["monitor", "beam", "nexus", "tof", "wavelength", "csv"]
 name = "Timepix3 Tool (rustpix)"
 description = "Process Timepix3 (TPX3) pixel detector data with the rustpix GUI."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rustpix/launch_rustpix.sh"]
 tags = ["tpx3", "detector"]
 
-# --------------------------------------------------------------------------
-# Jupyter notebooks
-# --------------------------------------------------------------------------
-
 [[app]]
-name = "Jupyter Notebooks Portal"
-description = "Provision and launch the imaging Jupyter notebooks for an IPTS."
-category = "jupyter"
-command = ["/SNS/VENUS/shared/software/bin/rust_jupyter_notebooks_portal"]
-clear_fontconfig = true
-tags = ["ipts"]
-requires_browser = true
-
-[[app]]
-name = "Jupyter Portal (dedicated IPTS)"
-description = "Launch the JupyterLab notebooks of a dedicated IPTS."
-category = "jupyter"
-command = ["/SNS/VENUS/shared/software/bin/rust_jupyter_portal_dedicated_ipts"]
-clear_fontconfig = true
-tags = ["ipts"]
-requires_browser = true
+name = "Shutter Value Generator"
+description = "Interactive GUI to create the shutter value file — live gap plots, Bragg peaks and output preview."
+category = "rust"
+instruments = ["venus"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/make_shutter_value_file/rust_shutter_value/launch_shutter_value_maker.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_shutter_value_maker_preview.png"
+tags = ["venus", "shutter", "bragg", "timepix"]
 
 # --------------------------------------------------------------------------
-# Marimo notebooks
+# Notebooks (marimo, then Python / Jupyter)
 # --------------------------------------------------------------------------
+
+# ---- Marimo ----
 
 [[app]]
 name = "Marimo Portal (general tools)"
 description = "Browse and launch the general-tools marimo notebooks."
-category = "marimo"
+category = "notebooks"
+section = "Marimo"
 command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal_general_tools"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/marimo_portal_general_tools_preview.png"
 clear_fontconfig = true
@@ -531,14 +570,37 @@ requires_browser = true
 [[app]]
 name = "Marimo Portal (dedicated IPTS)"
 description = "Launch the marimo notebooks of a dedicated IPTS."
-category = "marimo"
+category = "notebooks"
+section = "Marimo"
 command = ["/SNS/VENUS/shared/software/bin/rust_marimo_portal"]
 clear_fontconfig = true
 tags = ["ipts"]
 requires_browser = true
 
+# ---- Python ----
+
+[[app]]
+name = "Jupyter Notebooks Portal"
+description = "Provision and launch the imaging Jupyter notebooks for an IPTS."
+category = "notebooks"
+section = "Python"
+command = ["/SNS/VENUS/shared/software/bin/rust_jupyter_notebooks_portal"]
+clear_fontconfig = true
+tags = ["ipts"]
+requires_browser = true
+
+[[app]]
+name = "Jupyter Portal (dedicated IPTS)"
+description = "Launch the JupyterLab notebooks of a dedicated IPTS."
+category = "notebooks"
+section = "Python"
+command = ["/SNS/VENUS/shared/software/bin/rust_jupyter_portal_dedicated_ipts"]
+clear_fontconfig = true
+tags = ["ipts"]
+requires_browser = true
+
 # --------------------------------------------------------------------------
-# Python & other applications
+# Python applications
 # --------------------------------------------------------------------------
 
 [[app]]
@@ -552,6 +614,7 @@ in_terminal = true
 name = "iBeatles"
 description = "Bragg-edge strain mapping — sets up a local pixi environment on first run."
 category = "python"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_ibeatles"]
 in_terminal = true
 tags = ["bragg edge", "strain"]
@@ -560,6 +623,7 @@ tags = ["bragg edge", "strain"]
 name = "HyperCTui"
 description = "AI-automated CT loop (Rust hype_control application)."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/hype_scripts/rust/launch_hype_control.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_hyperctui_preview.png"
 tags = ["ai", "tomography"]
@@ -568,6 +632,7 @@ tags = ["ai", "tomography"]
 name = "Nereids"
 description = "Nereids GUI (pixi environment)."
 category = "rust"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_nereids"]
 in_terminal = true
 
@@ -579,6 +644,7 @@ in_terminal = true
 name = "Bragg-Edge Fitting Website"
 description = "Bragg-edge analysis website: equation playground, fitting demo, and upload & fit."
 category = "web"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/bragg_edge_fitting_website/launch_website.sh"]
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_fitting_web_tool.png"
@@ -589,6 +655,7 @@ requires_browser = true
 name = "iBeatles Web"
 description = "End-to-end Bragg-edge analysis: mask ROI, normalization, batch fitting, and strain mapping."
 category = "web"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/iBEAMS/launch_ibeams.sh"]
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/ibeams.png"
@@ -599,6 +666,7 @@ requires_browser = true
 name = "Strain Contour Mapper"
 description = "Visualize binned strain-mapping data as contour maps or heatmaps, with optional TIFF mask."
 category = "web"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/strain_contour_mapper/launch_website.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_mapping_web_tool.png"
 tags = ["strain", "contour", "heatmap", "ibeatles", "web"]
@@ -608,6 +676,7 @@ requires_browser = true
 name = "VENUS Segmentation Tool"
 description = "Paint multi-class masks on an image and export training-ready masks — all client-side."
 category = "web"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/venus_image_segmentation_website/start_segmentation_tool.sh"]
 in_terminal = true
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/class_mask_web_tool.png"
@@ -625,163 +694,6 @@ tags = ["neuit", "ineuit", "composition", "tof", "periodic table", "xrd", "bragg
 requires_browser = true
 
 # --------------------------------------------------------------------------
-# VENUS
-# --------------------------------------------------------------------------
-# Several entries here are duplicates of apps from other categories that are
-# also relevant to VENUS. Keep apps of the same section consecutive.
-
-# ---- Bragg edge ----
-
-[[app]]
-name = "iBeatles"
-description = "Bragg-edge strain mapping — sets up a local pixi environment on first run."
-category = "venus"
-section = "Bragg edge"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/menu/start_ibeatles"]
-in_terminal = true
-tags = ["bragg edge", "strain"]
-
-[[app]]
-name = "iBeatles Web"
-description = "End-to-end Bragg-edge analysis: mask ROI, normalization, batch fitting, and strain mapping."
-category = "venus"
-section = "Bragg edge"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/iBEAMS/launch_ibeams.sh"]
-in_terminal = true
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/ibeams.png"
-tags = ["bragg edge", "strain", "fitting", "web", "ibeams", "ibeatles"]
-requires_browser = true
-
-[[app]]
-name = "Bragg-Edge Fitting Website"
-description = "Bragg-edge analysis website: equation playground, fitting demo, and upload & fit."
-category = "venus"
-section = "Bragg edge"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/bragg_edge_fitting_website/launch_website.sh"]
-in_terminal = true
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_fitting_web_tool.png"
-tags = ["bragg edge", "fitting", "web", "santisteban"]
-requires_browser = true
-
-# ---- Normalization ----
-
-[[app]]
-name = "rustpix Monitor"
-description = "Watch an IPTS (or a list of runs) for Timepix3 .tpx3 runs and histogram each new one with the rustpix command line into a folder of TIFFs (one per TOF bin + summed image + spectra), mirroring the images/ tree under a base output folder."
-category = "venus"
-section = "Normalization"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_rustpix_monitor/launch_rustpix_monitor.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rustpix_monitor_preview.png"
-tags = ["rustpix", "tpx3", "timepix3", "monitor", "auto", "tiff", "histogram", "venus"]
-
-[[app]]
-name = "Auto Normalization Monitor at VENUS"
-description = "Monitor the state of the VENUS auto normalization pipeline."
-category = "venus"
-section = "Normalization"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor/launch_autonormalization_monitor.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autonormalization_monitor_preview.png"
-tags = ["normalization", "venus", "auto"]
-
-[[app]]
-name = "Workflow Runner"
-description = "Job manager over a table of runs: NeuNorm normalization, crop regions, and dehydration/hydration — with auto-run and per-step logs."
-category = "venus"
-section = "Normalization"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_workflow_runner/launch_workflow_runner.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/workflow_runner.png"
-tags = ["workflow", "pipeline", "normalization", "crop", "dehydration", "neunorm", "batch"]
-
-# ---- Visualization ----
-
-[[app]]
-name = "TOF Profile Viewer and Bin Maker"
-description = "Browse TIFF stacks from a VENUS/Timepix measurement and plot TOF profiles."
-category = "venus"
-section = "Visualization"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_profile_rebin_viewer/launch_tof_profile_rebin_viewer.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tof_profile_viewer_preview.png"
-tags = ["time of flight"]
-
-[[app]]
-name = "Volume 3D Viewer"
-description = "Explore reconstructed CT volumes (TIFF slices or multi-page TIFF) as orthogonal slices or GPU-rendered 3-D volume."
-category = "venus"
-section = "Visualization"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_3d_visualization/launch_3d_visualization.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_3d_preview.png"
-tags = ["3d", "volume", "ct", "tomography", "viewer"]
-
-[[app]]
-name = "Strain Contour Mapper"
-description = "Visualize binned strain-mapping data as contour maps or heatmaps, with optional TIFF mask."
-category = "venus"
-section = "Visualization"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/strain_contour_mapper/launch_website.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/strain_mapping_web_tool.png"
-tags = ["strain", "contour", "heatmap", "ibeatles", "web"]
-requires_browser = true
-
-# ---- General tools ----
-
-[[app]]
-name = "Shutter Value Generator"
-description = "Interactive GUI to create the shutter value file — live gap plots, Bragg peaks and output preview."
-category = "venus"
-section = "General tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/make_shutter_value_file/rust_shutter_value/launch_shutter_value_maker.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_shutter_value_maker_preview.png"
-tags = ["venus", "shutter", "bragg", "timepix"]
-
-[[app]]
-name = "Dehydration / Hydration Correction"
-description = "Denoise a stack of neutron images with the maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (run on the GPU in the git/mbirtorch_hsnt pixi environment): rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
-category = "venus"
-section = "General tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
-tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson"]
-
-[[app]]
-name = "Hyperspectral Masker"
-description = "Create a copy of an input data set with selected pixels masked."
-category = "venus"
-section = "General tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_hyperspectra_masker/launch_rust_hyperspectral_makser.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/hyperspectral_masker_preview.png"
-
-[[app]]
-name = "HyperCTui"
-description = "AI-automated CT loop (Rust hype_control application)."
-category = "venus"
-section = "General tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/hype_scripts/rust/launch_hype_control.sh"]
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_hyperctui_preview.png"
-tags = ["ai", "tomography"]
-
-[[app]]
-name = "VENUS Segmentation Tool"
-description = "Paint multi-class masks on an image and export training-ready masks — all client-side."
-category = "venus"
-section = "General tools"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/venus_image_segmentation_website/start_segmentation_tool.sh"]
-in_terminal = true
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/class_mask_web_tool.png"
-tags = ["segmentation", "mask", "labeling", "training", "web"]
-requires_browser = true
-
-# --------------------------------------------------------------------------
-# MARS
-# --------------------------------------------------------------------------
-
-[[app]]
-name = "Auto Normalization Monitor at MARS"
-description = "Monitor the state of the MARS auto normalization pipeline."
-category = "mars"
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autonormalization_monitor_mars/launch_autonormalization_monitor_mars.sh"]
-tags = ["normalization", "mars", "cg1d", "auto"]
-
-# --------------------------------------------------------------------------
 # Experiment
 # --------------------------------------------------------------------------
 
@@ -789,6 +701,7 @@ tags = ["normalization", "mars", "cg1d", "auto"]
 name = "VENUS IPTS Report"
 description = "Full report of an IPTS: every run per detector with date/time, duration, proton charge, sample, starting neutron bandwidth (from the run-level file name) and the open beam / dark current runs that pair with it. HTML and CSV export."
 category = "experiment"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ipts_report/launch_ipts_report.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ipts_report_preview.png"
 tags = ["ipts", "report", "runs", "open beam", "dark current", "proton charge", "bandwidth", "nexus", "html", "csv"]
@@ -805,6 +718,7 @@ tags = ["logbook", "notebook", "notes", "live", "monitor", "runs", "ipts", "comm
 name = "Find IPTS from Run Number"
 description = "Prompt for a VENUS run number and report which IPTS contains it."
 category = "experiment"
+instruments = ["venus"]
 command = ["/bin/bash", "-c", "read -r -p 'VENUS run number: ' rn; /SNS/VENUS/shared/software/bin/find_ipts.sh \"$rn\""]
 check_path = "/SNS/VENUS/shared/software/bin/find_ipts.sh"
 in_terminal = true
@@ -827,6 +741,7 @@ tags = ["search", "find", "regex", "grep", "nexus", "sample", "title", "date", "
 name = "Manual VENUS autoreduction (Anton's correction)"
 description = "Test the VENUS autoreduction script (reduce_VENUS.py) with different pixi environments and compare the raw and corrected stacks."
 category = "restricted"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_reduce_venus_tester/launch_reduce_venus_tester.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/reduce_venus_tester.png"
 tags = ["autoreduction", "reduce", "pixi", "neunorm", "mcp", "compare", "anton", "manual"]
@@ -835,6 +750,7 @@ tags = ["autoreduction", "reduce", "pixi", "neunorm", "mcp", "compare", "anton",
 name = "VENUS Timepix1 Autoreduce Checker"
 description = "Verify the Timepix autoreduction of a run: raw and autoreduced stacks side by side with mirrored ROI profiles (file index / TOF / lambda / energy), pass/fail verdict and reduction_log .log/.err viewers."
 category = "restricted"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_autoreduce_checker/launch_autoreduce_checker.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_autoreduce_checker_preview.png"
 tags = ["autoreduction", "check", "verify", "timepix", "mcp", "raw", "compare", "profile", "log"]
@@ -843,6 +759,7 @@ tags = ["autoreduction", "check", "verify", "timepix", "mcp", "raw", "compare", 
 name = "VENUS TPX3 ↔ NeXus Comparator"
 description = "Compare a run's Timepix3 .tpx3 file with its NeXus file: integrated maps side by side with a mirrored ROI and its TOF profile under each image, and a report (file size, format, load time, events, pulses, zero / dead / hot pixels, pixel-by-pixel differences, TOF resolution, undefined values) saved as Markdown / HTML / CSV."
 category = "restricted"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tpx3_nexus_comparator/launch_tpx3_nexus_comparator.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/tpx3_nexus_comparator_preview.png"
 tags = ["tpx3", "timepix3", "nexus", "compare", "events", "tof", "dead pixels", "report", "rustpix"]
@@ -851,6 +768,7 @@ tags = ["tpx3", "timepix3", "nexus", "compare", "events", "tof", "dead pixels", 
 name = "MCP Chips Aligner"
 description = "Load an uncorrected Timepix TIFF, interactively align the four MCP chips and export the offsets as a config.py snippet."
 category = "restricted"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_chips_correction/launch_chips_aligner.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_chips_aligner_preview.png"
 tags = ["mcp", "chips", "timepix", "alignment", "offsets"]
@@ -859,6 +777,7 @@ tags = ["mcp", "chips", "timepix", "alignment", "offsets"]
 name = "MCP Chips Correction Checker"
 description = "Validate the chips correction on a run: apply the config.py offsets to the autoreduced stack, compare original vs corrected ROI profiles (and normalized by an open-beam run), fill the inter-chip gaps, exclude bad chip-edge pixels, export the corrected stack."
 category = "restricted"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_chips_correction_checker/launch_chips_correction_checker.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_correction_pixel_checker_preview.png"
 tags = ["mcp", "chips", "timepix", "correction", "check", "profile", "normalization", "gaps", "export"]
@@ -867,6 +786,7 @@ tags = ["mcp", "chips", "timepix", "correction", "check", "profile", "normalizat
 name = "MCP Signal Evolution"
 description = "Track the health of the Timepix/MCP detector over time: monitor and detector profiles per run, zero/dead/hot pixel statistics, shared history database."
 category = "restricted"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_signal_evolution/launch_mcp_signal_evolution.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/mcp_signal_evolution_preview.png"
 tags = ["mcp", "timepix", "detector", "monitor", "evolution", "health", "pixels", "database"]
@@ -879,6 +799,7 @@ name = "MARS Sample Catalog"
 description = "Every sample of a MARS IPTS with the exposure time it received, from the TIFF headers of raw/radiographs and raw/ct_scans. Tables and charts (exposure per sample, per day, per CT scan), ASCII export (CSV + text summary) and send by email. Rust port of the MARS_sample_cataloging notebook."
 category = "restricted"
 section = "Team tools"
+instruments = ["mars"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mars_sample_catalog/launch_mars_sample_catalog.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_mars_sample_catalog_preview.png"
 tags = ["mars", "cg1d", "sample", "catalog", "exposure", "acquisition time", "ipts", "radiographs", "ct scans", "csv", "ascii", "email", "team"]
@@ -1005,6 +926,7 @@ ask_examples = ["how many clusters should I use", "what is the silhouette score"
 name = "Chip Ratio Corrector"
 description = "One Timepix chip sits at a level offset from the three others (seen on IPTS-37891): load the TIFF stack (normalized or raw), draw a background ROI on a good chip (reference) and one on the bad chip (target); the ratio of their means multiplies the bad chip (its quadrant, the ROI only, or a custom rectangle; one ratio for the stack or one per frame) over every frame. Before / after images side by side with the same display range, the per-frame means of both ROIs (target before and after) and the line profile across the chips on one plot, export of the corrected stack as float32 TIFF with a JSON report; the setup (ROIs, region, mode) can be saved and replayed headless with --apply --setup."
 category = "cis"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_chip_ratio_corrector/launch_chip_ratio_corrector.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_chip_ratio_corrector_preview.png"
 tags = ["chip", "chips", "timepix", "mcp", "offset", "ratio", "level", "quadrant", "background", "roi", "correction", "normalized", "tof", "cis"]
@@ -1038,6 +960,7 @@ tags = ["tomography", "nectar", "ct", "reconstruction", "mbirtorch", "torch", "b
 name = "Dehydration / Hydration Correction (beta)"
 description = "Beta version of the dehydration/hydration tool (rust_dehydration_hydration_development, branch mbirtorch_hsnt): the production tool — maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package — plus the changes under test before they are merged into production. Logs to dehydration_hydration_beta_<user>.log."
 category = "beta"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration_development/launch_dehydration_hydration.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/dehydration_hydration_preview.png"
 tags = ["denoise", "dehydration", "hydration", "hyperspectral", "mbirtorch", "hsnt", "poisson", "beta", "development"]
@@ -1064,6 +987,7 @@ requires_browser = true
 name = "TOF Polarization"
 description = "Polarized time-of-flight neutron imaging (after Oji et al., Materials & Design 2023): load the spin-up / spin-down / open-beam runs, draw ROIs on the polarization image and get the TOF polarization of each ROI with a live precession fit (field B, inhomogeneity σ), pixel-wise B / σ maps, and export of the paper-style figures, CSV / TIFF files and results.json."
 category = "beta"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_tof_polarization/launch_tof_polarization_gui.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_tof_polarization_preview.png"
 tags = ["polarization", "polarized", "spin", "tof", "magnetic", "field", "precession", "larmor", "depolarization", "venus", "beta"]
@@ -1072,6 +996,7 @@ tags = ["polarization", "polarized", "spin", "tof", "magnetic", "field", "preces
 name = "Optical Density"
 description = "Optical density OD = -ln(I_sample / I_reference) of a normalized TOF stack (after Lombardo et al., Sci. Rep. 2026): draw a region on the integrated image, select the reference band then the sample band on its profile (file index / TOF / lambda / energy; bands can be moved and resized), and get the OD image of the two bands with its colorbar, the mean OD in the region, and a float32 TIFF export. The detector offset is read from the run's NeXus file when the path names the IPTS and run."
 category = "beta"
+instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_optical_density/launch_rust_optical_density.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_optical_density_preview.png"
 tags = ["optical", "density", "od", "attenuation", "reference", "sample", "band", "tof", "normalized", "ice", "water", "venus", "beta"]
@@ -1084,6 +1009,7 @@ tags = ["optical", "density", "od", "attenuation", "reference", "sample", "band"
 name = "Root Plant Processing"
 description = "Rust port of the rhizotools / RootPlantProcessing pipeline for plant roots in soil (MARS): stitch the radiographs, crop, water content, root mask, filter, soil distance map, radial water content tables, root thickness and root-only water content — same user_config.txt as the Python package, outputs identical to it, ~100× faster; GUI with per-step viewers and a headless --run mode."
 category = "beta"
+instruments = ["mars"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_root_plant_processing/launch_root_plant_processing.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_root_plant_processing_preview.png"
 tags = ["root", "plant", "rhizotools", "rhizosphere", "soil", "water content", "stitch", "mask", "thickness", "mars", "distmap", "radwc"]
