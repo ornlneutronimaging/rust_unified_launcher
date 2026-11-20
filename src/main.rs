@@ -18,6 +18,8 @@
 
 mod ask;
 mod theme;
+mod tutorial;
+mod tutorial_button;
 mod zoom;
 
 use eframe::egui;
@@ -1828,6 +1830,8 @@ struct App {
     /// Egui times of the last config-mtime / availability checks.
     last_config_check: f64,
     last_availability_check: f64,
+    /// The tutorial, in a window of its own.
+    tutorial: tutorial::Tutorial,
 }
 
 impl App {
@@ -1866,6 +1870,7 @@ impl App {
             browser_scan: None,
             browser_window: None,
             show_versions: false,
+            tutorial: tutorial::Tutorial::default(),
             versions_filter: String::new(),
             versions: None,
             launch_anyway: None,
@@ -2188,6 +2193,7 @@ impl eframe::App for App {
             self.logo = load_texture(ctx, "imaging_logo", LOGO_BYTES);
         }
         let now = ctx.input(|i| i.time);
+        self.tutorial.show(ctx);
 
         // ------------------------------------------------ global keyboard --
         // Consumed before any widget sees them, so the focused search bar
@@ -2459,6 +2465,14 @@ impl eframe::App for App {
                     ui.with_layout(
                         egui::Layout::right_to_left(egui::Align::Center),
                         |ui| {
+                            if tutorial_button::show(ui, "Tutorial", self.tutorial.is_open())
+                                .on_hover_text(
+                                    "What the portal offers, page by page: favorites, the Ask box, the keyboard shortcuts (opens in its own window)",
+                                )
+                                .clicked()
+                            {
+                                self.tutorial.toggle();
+                            }
                             theme::toggle_button(ui);
                             zoom::toggle_button(ui);
                             if !self.search.is_empty()

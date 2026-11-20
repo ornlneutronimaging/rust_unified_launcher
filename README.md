@@ -90,6 +90,13 @@ by a config file instead of hardcoded entries.
   `~/.cache/unified_launcher/favorites.toml` (next to the `recent.toml`
   launch history), so it survives config edits; a starred app that sits in
   a locked category stays hidden until the category is unlocked.
+- **Tutorial** (blue **? Tutorial** button, right of the filter box): a
+  window of its own that walks through the portal page by page — favorites,
+  recently used, the filter and its keyboard shortcuts, the Ask box, the
+  preview panel, the instrument selector, the browser fix. Text only, in
+  `src/tutorial.rs`: update a page there when a feature changes. The button
+  is `src/tutorial_button.rs`, the same file in every VENUS rust tool that
+  has a tutorial (reference copy in `rust_normalization`).
 - A top-level `usage_db = "/dir"` records every successful launch as one
   JSON line in `<usage_db>/records/<user>.jsonl` (epoch, local time, user,
   full name, application, category, host, command/url). Best effort on a background
