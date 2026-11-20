@@ -652,17 +652,6 @@ tags = ["bragg edge", "fitting", "web", "santisteban"]
 requires_browser = true
 
 [[app]]
-name = "iBeatles Web"
-description = "End-to-end Bragg-edge analysis: mask ROI, normalization, batch fitting, and strain mapping."
-category = "web"
-instruments = ["venus"]
-command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/iBEAMS/launch_ibeams.sh"]
-in_terminal = true
-preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/ibeams.png"
-tags = ["bragg edge", "strain", "fitting", "web", "ibeams", "ibeatles"]
-requires_browser = true
-
-[[app]]
 name = "Strain Contour Mapper"
 description = "Visualize binned strain-mapping data as contour maps or heatmaps, with optional TIFF mask."
 category = "web"
@@ -790,6 +779,17 @@ instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_mcp_signal_evolution/launch_mcp_signal_evolution.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/mcp_signal_evolution_preview.png"
 tags = ["mcp", "timepix", "detector", "monitor", "evolution", "health", "pixels", "database"]
+
+[[app]]
+name = "iBeatles Web"
+description = "End-to-end Bragg-edge analysis: mask ROI, normalization, batch fitting, and strain mapping."
+category = "restricted"
+instruments = ["venus"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/webtools/iBEAMS/launch_ibeams.sh"]
+in_terminal = true
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/ibeams.png"
+tags = ["bragg edge", "strain", "fitting", "web", "ibeams", "ibeatles"]
+requires_browser = true
 
 # ---- Team tools ----
 
@@ -1000,6 +1000,15 @@ instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_optical_density/launch_rust_optical_density.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_optical_density_preview.png"
 tags = ["optical", "density", "od", "attenuation", "reference", "sample", "band", "tof", "normalized", "ice", "water", "venus", "beta"]
+
+[[app]]
+name = "iBeatles 2.0 (in development)"
+description = "Rust rewrite of iBeatles for Bragg-edge neutron imaging, following the iBEAMS (iBeatles web) workflow. In development. What exists: load the sample and the open beam (folders or run numbers, quick look on hover, several runs combined frame by frame: mean / add / median), check them with a region-of-interest profile versus frame, TOF or wavelength; rebin in TOF with the TOF Profile Viewer (same bins for the sample and the open beam, written to tof_rebin/); define the pre-mask (automatic from the pixel values, or drawn in the Sample Masker) and the normalization settings; choose the material (pre-defined or user-defined) and see its Bragg edges on the profile; a log of everything done. The saved configuration runs the same process without a window (--no-gui --config). Running the normalization, masking, binning, fitting and strain mapping are not available yet."
+category = "beta"
+instruments = ["venus"]
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ibeatles/launch_ibeatles.sh"]
+preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ibeatles_preview.png"
+tags = ["ibeatles", "ibeams", "bragg", "edge", "strain", "tof", "combine", "rebin", "open beam", "venus", "beta", "development"]
 
 # --------------------------------------------------------------------------
 # System tools
