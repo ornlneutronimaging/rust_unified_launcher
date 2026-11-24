@@ -494,7 +494,7 @@ tags = ["denoise"]
 
 [[app]]
 name = "Dehydration / Hydration Correction"
-description = "Denoise a stack of neutron images with the maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (run on the GPU in the git/mbirtorch_hsnt pixi environment): rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots."
+description = "Denoise a stack of neutron images with the maximum-likelihood dehydrate/rehydrate of mbirtorch's hsnt package by Harel Dor (run on the GPU in the git/mbirtorch_hsnt pixi environment): rank estimated by likelihood-ratio tests or given, mle/unconstrained/support spectra, optional dose with a chi-square check, log and diagnostics plots. Exports the TIFFs plus the dehydrated file, report and plots. Sessions are recorded (what is selected, the pointer, clicks, keys and file dialogs) so that the imaging team can reproduce a problem step by step: a notice says so at the first start, and the 🔒 button of the toolbar (private mode) turns it off."
 category = "rust"
 instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_dehydration_hydration/launch_dehydration_hydration.sh"]
@@ -885,7 +885,7 @@ tags = ["log", "logs", "debug", "support", "users", "errors", "nectar", "cis"]
 
 [[app]]
 name = "Session Replay"
-description = "Reproduce what a user did: the sessions recorded by the Neutron Image Viewer and Normalization in /SNS/VENUS/shared/log/sessions, by user and date, with crashed / unfinished sessions flagged. Read a session as a timeline (clicks, keys, file dialogs, the application's log lines), then replay it in the application that recorded it: play / pause, step by step, run up to a selected step, speed 0.5× to max, in the build that recorded it or another one (a fix to check). A report lists where the replay differs from the recording. Users in private mode are not recorded."
+description = "Reproduce what a user did: the sessions recorded by the Neutron Image Viewer, Normalization and Dehydration / Hydration Correction in /SNS/VENUS/shared/log/sessions, by user and date, with crashed / unfinished sessions flagged. Read a session as a timeline (clicks, keys, file dialogs, the application's log lines), then replay it in the application that recorded it: play / pause, step by step, run up to a selected step, speed 0.5× to max, in the build that recorded it or another one (a fix to check). A report lists where the replay differs from the recording. Users in private mode are not recorded."
 category = "cis"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_session_replay/launch_session_replay.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_session_replay_preview.png"
