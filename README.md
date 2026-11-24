@@ -57,7 +57,8 @@ by a config file instead of hardcoded entries.
   categories, the list and the preview while it is selected, as on the
   Setup screen of `rust_normalization` (same pictures, in `logos/`): the
   picture covers the area, or with `backdrop_fit = "corner"` rises whole
-  from the lower right corner (the MARS planet).
+  from the lower right corner (for a planet on a transparent background,
+  as MARS had before its beamline photo).
 - A `[[category]]` with `passwords = ["word1", "word2"]` shows as 🔒 in the
   sidebar and asks for one of those passwords (case-insensitive) before
   revealing its applications; until unlocked they are hidden from the All

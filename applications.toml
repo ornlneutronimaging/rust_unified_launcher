@@ -202,8 +202,7 @@ backdrop = "/SNS/VENUS/shared/software/git/rust_unified_launcher/logos/venus_bea
 id = "mars"
 name = "MARS"
 hosts = ["cg1d"]
-backdrop = "/SNS/VENUS/shared/software/git/rust_unified_launcher/logos/mars_planet.png"
-backdrop_fit = "corner"
+backdrop = "/SNS/VENUS/shared/software/git/rust_unified_launcher/logos/mars_beamline.jpg"
 
 [[category]]
 id = "rust"
