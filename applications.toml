@@ -885,7 +885,7 @@ tags = ["log", "logs", "debug", "support", "users", "errors", "nectar", "cis"]
 
 [[app]]
 name = "Session Replay"
-description = "Reproduce what a user did: the sessions recorded by the Neutron Image Viewer in /SNS/VENUS/shared/log/sessions, by user and date, with crashed / unfinished sessions flagged. Read a session as a timeline (clicks, keys, file dialogs, the application's log lines), then replay it in the viewer: play / pause, step by step, run up to a selected step, speed 0.5× to max, in the build that recorded it or another one (a fix to check). A report lists where the replay differs from the recording. Users in private mode are not recorded."
+description = "Reproduce what a user did: the sessions recorded by the Neutron Image Viewer and Normalization (beta) in /SNS/VENUS/shared/log/sessions, by user and date, with crashed / unfinished sessions flagged. Read a session as a timeline (clicks, keys, file dialogs, the application's log lines), then replay it in the application that recorded it: play / pause, step by step, run up to a selected step, speed 0.5× to max, in the build that recorded it or another one (a fix to check). A report lists where the replay differs from the recording. Users in private mode are not recorded."
 category = "cis"
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_session_replay/launch_session_replay.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_session_replay_preview.png"
@@ -1017,6 +1017,13 @@ instruments = ["venus"]
 command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_ibeatles/launch_ibeatles.sh"]
 preview = "/SNS/VENUS/shared/software/git/rust_unified_launcher/previews/rust_ibeatles_preview.png"
 tags = ["ibeatles", "ibeams", "bragg", "edge", "strain", "tof", "combine", "rebin", "open beam", "venus", "beta", "development"]
+
+[[app]]
+name = "Normalization (beta)"
+description = "Beta version of Normalization (VENUS & MARS) (rust_normalization_development, branch beta): the production application plus the changes under test before they are merged into production. This version records the session — what is selected, the pointer, clicks, keys, file dialogs and what the tools started from it hand back — to /SNS/VENUS/shared/log/sessions, so that a problem can be reproduced step by step with the Session Replay tool. A notice says so at the first start; the 🔒 button at the top right (private mode) or --no-session-log turn the recording off."
+category = "beta"
+command = ["/bin/bash", "/SNS/VENUS/shared/software/git/rust_normalization_development/launch_normalization.sh"]
+tags = ["normalization", "normalize", "ob", "open beam", "dark current", "tof", "white beam", "venus", "mars", "neunorm", "session", "replay", "beta", "development"]
 
 # --------------------------------------------------------------------------
 # System tools
