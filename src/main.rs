@@ -3477,6 +3477,9 @@ impl eframe::App for App {
                 .map(|c| locked.contains(c))
                 .unwrap_or(false);
             self.active_category = new_cat;
+            // A category clicked is looked at whole: what was typed in the
+            // search box would go on hiding most of it.
+            self.search.clear();
             self.password_input.clear();
             self.password_wrong = false;
             self.focus_password = opens_prompt;
